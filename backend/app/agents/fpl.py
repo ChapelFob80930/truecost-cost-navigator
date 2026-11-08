@@ -6,11 +6,11 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Optional
 
-from ..config import PROJECT_ROOT
+from ..config import DATA_DIR
 from ..exceptions import DomainError
 from .schemas import FplResult
 
-DEFAULT_FPL_PATH = PROJECT_ROOT / "backend" / "data" / "fpl_guidelines.json"
+DEFAULT_FPL_PATH = DATA_DIR / "fpl_guidelines.json"
 MAX_HOUSEHOLD = 20
 
 

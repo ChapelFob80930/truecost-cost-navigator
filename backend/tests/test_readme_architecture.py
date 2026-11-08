@@ -11,13 +11,29 @@ from app.main import create_app
 
 from .conftest import FakeRepo
 
+def route_paths(app):
+    """Every route path, in old and new FastAPI. Newer versions keep included routers inside an `_IncludedRouter` object
+    (reachable through `original_router`) instead of listing their routes in `app.routes`."""
+    out = set()
+
+    def walk(routes):
+        for r in routes:
+            nested = getattr(getattr(r, "original_router", None), "routes", None)
+            if nested is not None:
+                walk(nested)
+            elif getattr(r, "methods", None):
+                out.add(r.path)
+    walk(app.routes)
+    return out
+
+
 README = (Path(__file__).resolve().parents[2] / "README.md").read_text(encoding="utf-8")
 SKIP = {"/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"}
 
 
 def test_every_route_is_documented_in_the_readme():
     app = create_app(container=Container.from_repo(FakeRepo()))
-    paths = {r.path for r in app.routes if getattr(r, "methods", None)} - SKIP
+    paths = route_paths(app) - SKIP
     missing = sorted(p for p in paths if f"`{p}`" not in README)
     assert not missing, f"Add these routes to the API table in README.md: {missing}"
 
@@ -37,7 +53,7 @@ def test_readme_has_the_architecture_diagram():
 def test_documented_routes_still_exist():
     """The reverse check: no stale rows in the API table."""
     app = create_app(container=Container.from_repo(FakeRepo()))
-    paths = {r.path for r in app.routes if getattr(r, "methods", None)}
+    paths = route_paths(app)
     table = README.split("## API", 1)[1].split("## Guardrails", 1)[0]
     documented = set(re.findall(r"^\| `(/[^`]*)` \|", table, flags=re.M))
     stale = sorted(documented - paths)

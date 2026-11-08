@@ -1,9 +1,10 @@
-fastapi
-uvicorn[standard]
-pydantic>=2
-pytest
-httpx
-google-genai
-psycopg[binary,pool]
-pypdf
-python-multipart
+# Exact versions that passed the tests and the Vercel bundle check. Dependabot proposes upgrades as pull requests, and CI tests them.
+fastapi==0.162.2
+uvicorn[standard]==0.54.0
+pydantic==2.14.3
+pytest==9.2.0
+httpx==0.28.1
+google-genai==3.0.0
+psycopg[binary,pool]==3.3.8
+pypdf==7.0.0
+python-multipart==0.0.33

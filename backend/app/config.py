@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]          # the repository root (only used for .env and the SQLite fallback file)
+BACKEND_DIR = Path(__file__).resolve().parents[1]           # the folder holding app/ and data/: correct in the repo AND when Vercel builds from backend/
+DATA_DIR = BACKEND_DIR / "data"
 
 
 def load_dotenv(path: Path) -> None:

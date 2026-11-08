@@ -15,10 +15,10 @@ from datetime import date
 from pathlib import Path
 from typing import List, Optional
 
-from ..config import PROJECT_ROOT
+from ..config import DATA_DIR
 from .schemas import AssistanceProgram, CriterionCheck, IncomeNote
 
-DEFAULT_PROGRAMS_PATH = PROJECT_ROOT / "backend" / "data" / "assistance_programs.json"
+DEFAULT_PROGRAMS_PATH = DATA_DIR / "assistance_programs.json"
 
 
 @dataclass

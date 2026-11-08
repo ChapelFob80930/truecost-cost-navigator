@@ -16,7 +16,7 @@ flowchart LR
   end
   UI -->|"note text, file or camera photo"| API
 
-  subgraph Backend["FastAPI backend (a Vercel serverless function in production; local or tunnel for development)"]
+  subgraph Backend["FastAPI backend (the Vercel service backend in production; local or tunnel for development)"]
     API["Routes (thin HTTP layer)"]
     READER["NoteReader: txt, docx, PDF text read locally; scans and photos read by Gemini"]
     EXTRACT["GeminiCodeExtractor: structured JSON plus code-side filters"]
@@ -184,7 +184,7 @@ Deploying on Vercel, with CI/CD: [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md).
 ## CI/CD
 
 GitHub Actions (`.github/workflows/`) run on every push and pull request. **CI** runs the tests (including the README architecture
-check), a secret scan, and a clean-install check of the Vercel bundle. **Deploy** then publishes to Vercel: a preview for each pull
+check), a secret scan, and a clean-install check that runs the service from a copy of backend/ alone, as Vercel builds it. **Deploy** then publishes to Vercel: a preview for each pull
 request, production for `main`, and a smoke test (`scripts/smoke_test.py`) after each deployment. Nothing deploys unless CI passes, and
 the deploy job skips itself until the three Vercel secrets are set. Setup and limits: [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md).
 
@@ -202,8 +202,7 @@ frontend/            Streamlit app
 lovable/             typed API client and prompts for the Lovable web app
 eval/                extraction and agent evals, results, judge Q&A
 scripts/             build_db.py, migrate_to_postgres.py, record_demo.py, validators, smoke_test.py, secret_scan.py, check_vercel_bundle.py
-api/                 Vercel entry point (index.py) and the dependencies Vercel installs
-vercel.json          Vercel function settings (time limit, which files ship)
+vercel.json          Vercel Services config: one public service, 'backend', built from backend/ (entry point backend/index.py)
 .github/             CI and deploy workflows, Dependabot
 docs/                deployment guide for Vercel
 deploy/              Vultr install scripts (systemd + Caddy), the alternative to Vercel

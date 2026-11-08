@@ -7,10 +7,10 @@ from typing import Type, TypeVar
 
 from pydantic import BaseModel
 
-from ..config import PROJECT_ROOT
+from ..config import DATA_DIR
 from ..exceptions import DomainError
 
-CACHE_DIR = PROJECT_ROOT / "backend" / "data" / "cached"
+CACHE_DIR = DATA_DIR / "cached"
 T = TypeVar("T", bound=BaseModel)
 
 

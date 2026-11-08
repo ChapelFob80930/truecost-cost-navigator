@@ -1,6 +1,7 @@
 """FastAPI entry point.  Run:  cd backend && ../.venv/bin/uvicorn app.main:create_app --factory --reload"""
 from __future__ import annotations
 
+import inspect
 import logging
 import time
 from typing import Optional
@@ -24,8 +25,12 @@ def create_app(container: Optional[Container] = None, settings: Optional[Setting
                   description="Ranks Buffalo-area hospitals by a breast-cancer patient's estimated out-of-pocket cost.")
     app.state.container = container or Container.build(settings)
 
-    app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins),
-                       allow_methods=["*"], allow_headers=["*"])
+    cors = dict(allow_origins=list(settings.cors_origins), allow_methods=["*"], allow_headers=["*"])
+    if "allow_private_network" in inspect.signature(CORSMiddleware.__init__).parameters:
+        # Newer Starlette refuses a browser's "private network" preflight (a public site calling a server on the visitor's own PC)
+        # unless it is allowed. Older versions don't know the option, and our own middleware below answers it for them.
+        cors["allow_private_network"] = True
+    app.add_middleware(CORSMiddleware, **cors)
 
     @app.middleware("http")
     async def allow_private_network(request: Request, call_next):

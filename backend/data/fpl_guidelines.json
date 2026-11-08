@@ -1,0 +1,10 @@
+{
+  "_note": "HHS poverty guidelines, 48 contiguous states and DC, 2026: $15,960 for the first person plus $5,680 for each additional person. Cross-checked on 2026-11-07 against ECMC's 2026 NYS Uniform Hospital Financial Assistance Application, which prints the 200%/300%/400% amounts for 1-7 person households. 20 of its 21 numbers match these amounts exactly. The one mismatch is the 2-person 300% cell, printed as $65,920 where 3 x $21,640 = $64,920, which looks like a typo on ECMC's form. The 200% amounts for 1-4 people also match the NY State of Health 2026 income chart (as quoted by a web search; that PDF returned 403 to our reader). The Federal Register notice itself was not opened.",
+  "status": "VERIFIED",
+  "year": 2026,
+  "region": "48 contiguous states and DC",
+  "first_person_amount": 15960,
+  "each_additional_person": 5680,
+  "source_url": "https://aspe.hhs.gov/topics/poverty-economic-mobility/poverty-guidelines",
+  "retrieved_date": "2026-11-07"
+}

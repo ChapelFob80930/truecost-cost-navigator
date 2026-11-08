@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from ..domain.case import Case
 from .assistance import LookupResult, ProgramMatch, load_programs, lookup_assistance
+from .explain import assistance_explanation
 from .fpl import compute_fpl_percent
 from .guards import safe_text
 from .llm import ChatModel, ToolDecl
@@ -99,8 +100,8 @@ def run_assistance_agent(model: ChatModel, case: Case, hospitals: Optional[List[
             fpl = compute_fpl_percent(case.household_size, case.annual_income, fpl_path)
         except Exception as e:  # noqa: BLE001
             loop.error = loop.error or f"Could not compute the poverty-level percent: {e}"
-    if not state["lookups"]:
-        state["lookups"].append(lookup_assistance(fpl.fpl_percent if fpl else None, None, coverage_status(case), programs_path))
+    # always run one complete, unfiltered search in code, so a narrow tool call by the AI can never hide a program
+    state["lookups"].append(lookup_assistance(fpl.fpl_percent if fpl else None, None, coverage_status(case), programs_path))
 
     found: Dict[str, ProgramMatch] = {}
     for lk in state["lookups"]:
@@ -123,6 +124,7 @@ def run_assistance_agent(model: ChatModel, case: Case, hospitals: Optional[List[
 
     fallback = _fallback_summary(matches, fpl)
     summary, replaced = fallback, None
+    ai_wording_used = False
     if loop.error is None or matches:
         try:
             facts = json.dumps({"fpl": to_jsonable(fpl), "matches": [m.model_dump(mode="json") for m in matches],
@@ -130,9 +132,13 @@ def run_assistance_agent(model: ChatModel, case: Case, hospitals: Optional[List[
             raw = model.final_json(ASSISTANCE_SYSTEM_PROMPT, ASSISTANCE_SUMMARY_PROMPT + facts, SUMMARY_SCHEMA)
             summary, replaced = safe_text(raw.get("summary_plain"), [facts, json.dumps(case.llm_view())], fallback,
                                           extra_numbers=[len(matches)])
+            ai_wording_used = True
         except Exception as e:  # noqa: BLE001
             loop.error = loop.error or f"The AI summary failed ({type(e).__name__}); showing a standard summary."
     meta = AgentMeta(mode="live", model=model.model_name, tool_calls_used=loop.calls_used, trail=loop.trail, error=loop.error)
     if replaced:
         meta.disclaimers = meta.disclaimers + [f"The AI's wording was replaced with standard wording ({replaced})."]
-    return AssistanceMatchResponse(fpl=fpl, matches=matches, not_found=not_found, summary_plain=summary, meta=meta)
+    explanation = assistance_explanation(case, fpl, loop.trail, coverage_status(case), programs_path, names, not_found,
+                                         ai_wording_used, replaced)
+    return AssistanceMatchResponse(fpl=fpl, matches=matches, not_found=not_found, summary_plain=summary,
+                                   explanation=explanation, meta=meta)

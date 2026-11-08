@@ -1,0 +1,122 @@
+{
+  "_instructions": [
+    "CURATED TABLE for the Financial Assistance Matcher. Rows with verified=false are IGNORED by the app.",
+    "Rows below marked verified=true were transcribed on 2026-11-07 from the official policy / program pages the team pasted in. Re-check each against its source before the pitch (see verify_notes).",
+    "Run: python scripts/validate_assistance.py   (it refuses rows marked verified that still contain TODO-VERIFY, a non-https source, or the placeholder date).",
+    "fpl_threshold_pct is 'at or below this percent of the Federal Poverty Level'. null = the source we have lists no income number."
+  ],
+  "programs": [
+    {
+      "program_name": "Roswell Park Financial Assistance Program (uninsured patients)",
+      "sponsor": "Roswell Park Comprehensive Cancer Center",
+      "type": "hospital charity care",
+      "eligibility_summary": "For uninsured New York State residents who need medically necessary treatment at Roswell Park and have household income at or below 400% of the Federal Poverty Level. Discount off the Medicaid fee schedule: 100% off at 200% FPL or less, 90% off at 201-300%, 80% off at 301-400%. Not for take-home prescriptions from the retail pharmacy.",
+      "fpl_threshold_pct": 400,
+      "applies_to": "uninsured",
+      "how_to_apply": "Fill out the Roswell Park financial assistance application and send proof of income for everyone in the household. You can apply at any time, even after a bill goes to collections. Discounts can reach back 180 days from the application date. You get a written decision within 30 days.",
+      "contact": "Roswell Park financial counselors: 716-845-4782",
+      "source_url": "https://www.roswellpark.org/sites/default/files/2026-08/patient-payment-policy-4211.pdf",
+      "retrieved_date": "2026-11-07",
+      "verified": true,
+      "verify_notes": "From Roswell Park Policy 421.1 'Patient Payment Policy', revision 16, effective 6/11/2025 (Section D.1.j-o), plus the Getting Help page for the phone number. The PDF at the source link was read on 2026-11-07 and is Policy 421.1, revision 16, effective 6/11/2025, with the same discount tiers. Denied applicants can appeal in writing within 10 days."
+    },
+    {
+      "program_name": "Roswell Park Financial Assistance Program (underinsured patients)",
+      "sponsor": "Roswell Park Comprehensive Cancer Center",
+      "type": "hospital charity care",
+      "eligibility_summary": "For insured New York State residents who need medically necessary treatment at Roswell Park and can't afford their copays and deductibles, with household income at or below 400% of the Federal Poverty Level. Discount on the balance you owe: 100% at 200% FPL or less, 90% at 201-300%, 80% at 301-400%. Above 400% FPL you are not eligible for this program.",
+      "fpl_threshold_pct": 400,
+      "applies_to": "insured",
+      "how_to_apply": "Same application as the uninsured program: fill out the Roswell Park financial assistance application and send proof of income for everyone in the household. Ask the financial counselors how it applies to your copays and deductibles.",
+      "contact": "Roswell Park financial counselors: 716-845-4782",
+      "source_url": "https://www.roswellpark.org/sites/default/files/2026-08/patient-payment-policy-4211.pdf",
+      "retrieved_date": "2026-11-07",
+      "verified": true,
+      "verify_notes": "From Roswell Park Policy 421.1, revision 16, Section D.2 (underinsured). The policy calls this a voluntary program that Roswell Park can change or stop. Not offered to patients who are both underinsured and not New York residents."
+    },
+    {
+      "program_name": "Kaleida Health Financial Assistance Policy (PFS.3)",
+      "sponsor": "Kaleida Health (Buffalo General Medical Center, Millard Fillmore Suburban Hospital)",
+      "type": "hospital charity care",
+      "eligibility_summary": "For people who are uninsured, underinsured, not eligible for a government program, or unable to pay for medically necessary care, based on household income and family size only. Sliding scale by Federal Poverty Level: 100% discount at 200% FPL or less; 90% at 200-249%; 75% at 250-299%; 60% at 300-349%; 50% at 350-400%. Over 400% FPL the application is denied. Does not cover doctors Kaleida does not employ (such as radiology, anesthesia, ER physicians), cosmetic surgery, medical equipment, or long-term care.",
+      "fpl_threshold_pct": 400,
+      "applies_to": "both",
+      "how_to_apply": "Fill out the Kaleida financial assistance application with proof of income (for example recent pay stubs). You can apply up to 240 days after the date of service. Kaleida decides within 30 days. Financial counselors can help you complete the application. Some uninsured patients are approved automatically (presumptive eligibility).",
+      "contact": "Kaleida Financial Assistance Office / Patient Financial Services: 716-859-8979, 726 Exchange Street, 3rd Floor, Buffalo, NY 14210",
+      "source_url": "https://www.kaleidahealth.org/services/pdfs/CharityCare/Financial-Assistance-Policy-PFS03.pdf",
+      "retrieved_date": "2026-11-07",
+      "verified": true,
+      "verify_notes": "From Kaleida policy PFS.3 (PDF metadata and the pasted copy say 2/1/23 revision, created July 2023, so check for a newer version) and Kaleida's Charity Care Application PDF for the phone and address. The policy covers 'all hospital sites'; it does not name Millard Fillmore Suburban, so confirm with the office. Kaleida's website lists both Buffalo General and Millard Fillmore Suburban as Kaleida hospitals; its Financial Assistance Program page only links to the program and gives no details. A denied applicant can appeal in writing within 20 days."
+    },
+    {
+      "program_name": "Catholic Health Healthcare Assistance Program",
+      "sponsor": "Catholic Health (Mercy Hospital of Buffalo, Kenmore Mercy Hospital, Mount St. Mary's Hospital)",
+      "type": "hospital charity care",
+      "eligibility_summary": "For uninsured and underinsured patients who get medically necessary care. Open to residents of New York State, bordering states, or Ohio with household income at or below 400% of the Federal Poverty Level, regardless of immigration status. Discount on self-pay balances: 100% at 200% FPL or less, 90% at 201-300%, 80% at 301-400%. Only services by Catholic Health employed providers are covered; other doctors bill separately. Uninsured patients must also apply for any other assistance they may be eligible for.",
+      "fpl_threshold_pct": 400,
+      "applies_to": "both",
+      "how_to_apply": "Fill out the New York State uniform financial assistance application and send proof of income (such as recent pay stubs or tax return). Mail to Catholic Health/RMC, 144 Genesee Street, 3rd Floor, Buffalo, NY 14203, Attn: Credit & Collections, or fax 716-961-4458. You have 240 days from your first billing statement to apply. While your application is reviewed you can set aside the bills. They decide within 30 days.",
+      "contact": "Catholic Health Patient Financial Services: (716) 601-3600",
+      "source_url": "https://www.chsbuffalo.org/billing-insurance/financial-assistance/",
+      "retrieved_date": "2026-11-07",
+      "verified": true,
+      "verify_notes": "From the Catholic Health financial assistance web page and policy CHS-RMC-003 (effective 3/25/25), plus the application letter. Programs shown on the page: Kenmore Mercy, Mercy Hospital of Buffalo, Mount St. Mary's, and others in the system. The pasted page links a 2026 poverty-level table, which we did not read."
+    },
+    {
+      "program_name": "ECMC Financial Assistance Program",
+      "sponsor": "ECMC (Erie County Medical Center)",
+      "type": "hospital charity care",
+      "eligibility_summary": "For low-income people without health insurance, people whose insurance is used up, and underinsured people (out-of-pocket medical costs over the past 12 months above 10% of gross yearly income), with household income up to 400% of the Federal Poverty Level. Immigration status does not matter. Charges reduced on a sliding scale: all charges waived below 200% FPL; at 200-300% FPL an uninsured patient pays a sliding amount up to 10% of what Medicaid would have paid, and an underinsured patient pays up to 10% of their insurance cost-sharing amount; at 301-400% FPL the same with a 20% maximum. These are the minimum discount rates on the form; ECMC may give more. You may be billed separately for physician fees not covered.",
+      "fpl_threshold_pct": 400,
+      "applies_to": "both",
+      "how_to_apply": "Fill out the NYS Uniform Hospital Financial Assistance Application and give ECMC proof of income. You can apply before an appointment, at the hospital, or when a bill arrives, even during collections. Return it in person or by mail to ECMC Financial Counseling Services, 462 Grider Street, Room 1101, Buffalo, NY 14215 (Mon-Fri, 7:30 a.m.-4:00 p.m.). ECMC sends a letter within 30 days. You can't be required to pay a bill while your application is being considered. Monthly payment plans are capped at 5% of gross monthly income.",
+      "contact": "ECMC financial assistance office: (716) 898-5566. Extra help or appeals: Community Health Advocates 888-614-5400. State complaints: (800) 804-5447",
+      "source_url": "https://www.ecmc.edu/wp-content/uploads/2026/07/Universal-FAP-2026-Application.pdf",
+      "retrieved_date": "2026-11-07",
+      "verified": true,
+      "verify_notes": "Read directly from ECMC's 2026 NYS Uniform Hospital Financial Assistance Application (eligibility, 2026 poverty-level table, minimum discount rates) and the ECMC Financial Assistance web page FAQ (how to apply, 30-day letter, hours, address, complaint line). The form states the discount rates as minimums. Page: https://www.ecmc.edu/patients-visitors/billing-and-insurance/financial-assistance/"
+    },
+    {
+      "program_name": "NYS Cancer Services Program (breast screening and follow-up testing)",
+      "sponsor": "New York State Department of Health (Erie County program run by the Erie County Department of Health)",
+      "type": "public program",
+      "eligibility_summary": "Provides breast, cervical and colorectal cancer screening and follow-up diagnostic testing at no cost to people who live in New York State, are uninsured or have insurance with a cost share that may prevent them from getting care, and meet the program's income and age requirements (the page does not list the income number). Breast screening: ages 40 and older, or under 40 if at high risk. If a screening finds something abnormal, follow-up diagnostic testing is available at no cost for eligible people.",
+      "fpl_threshold_pct": null,
+      "applies_to": "both",
+      "how_to_apply": "Call the statewide line to be connected to a program near you, or call the Erie County program directly. Calls to the statewide line are free and answered 24 hours a day, 7 days a week.",
+      "contact": "Statewide: 1-866-442-CANCER (2262). Erie County Cancer Services Program: (716) 858-7376, 95 Franklin St., Room 950, Buffalo",
+      "source_url": "https://www.health.ny.gov/diseases/cancer/services/",
+      "retrieved_date": "2026-11-07",
+      "verified": true,
+      "verify_notes": "From the NYS Department of Health Cancer Services Program page (revised September 2026) and the Erie County CSP breast screening page, which says screening mammograms are covered for ages 40-74 with little or no health insurance. The income limit is not on either page; ask the program."
+    },
+    {
+      "program_name": "Medicaid Cancer Treatment Program (breast cancer)",
+      "sponsor": "New York State Department of Health",
+      "type": "public program",
+      "eligibility_summary": "Medicaid coverage for treatment of breast cancer or a pre-cancerous breast condition. You must have been screened and diagnosed by a New York State licensed provider, have no creditable health insurance when you apply, need treatment, live in New York State, and be a U.S. citizen or have satisfactory immigration status. The page lists no income limit for breast cancer. Coverage is for the enrollee only and is rechecked every year.",
+      "fpl_threshold_pct": null,
+      "applies_to": "uninsured",
+      "how_to_apply": "Apply with a Cancer Services Program designee (a trained helper called a Designated Qualified Entity) through your local Cancer Services Program. Call the Cancer Services Program hotline to find yours.",
+      "contact": "Cancer Services Program hotline: 1-866-442-2262. Medicaid Help Line: 1-800-541-2831",
+      "source_url": "https://www.health.ny.gov/diseases/cancer/treatment/mctp/",
+      "retrieved_date": "2026-11-07",
+      "verified": true,
+      "verify_notes": "From the NYS Department of Health MCTP page (revised March 2025) and the MCTP fact sheet (updated 11-2022). Colorectal and prostate cancer have an under-65 age limit and a 250% FPL income limit; those do not apply to breast cancer."
+    },
+    {
+      "program_name": "NY State of Health: Medicaid and the Essential Plan",
+      "sponsor": "New York State (NY State of Health marketplace and NYS Medicaid)",
+      "type": "public program",
+      "eligibility_summary": "Health coverage, not a bill discount. In 2026, Medicaid covers adults up to 138% of the Federal Poverty Level. The Essential Plan is for New York residents ages 19 to 64 who are lawfully present and not eligible for Medicaid or Child Health Plus, with income up to 200% of the Federal Poverty Level ($31,920 a year for one person, $66,000 for a household of four). The Essential Plan's 200-250% tier ended June 30, 2026; people in that band may qualify for a subsidized marketplace plan instead.",
+      "fpl_threshold_pct": 200,
+      "applies_to": "both",
+      "how_to_apply": "Apply through NY State of Health (nystateofhealth.ny.gov). One application checks for Medicaid, Child Health Plus, the Essential Plan and subsidized marketplace plans. Medicaid and the Essential Plan can be applied for during the year.",
+      "contact": "NY State of Health: nystateofhealth.ny.gov (help line 1-855-355-5777; confirm on the website)",
+      "source_url": "https://info.nystateofhealth.ny.gov/EssentialPlan",
+      "retrieved_date": "2026-11-07",
+      "verified": true,
+      "verify_notes": "Figures come from official info.nystateofhealth.ny.gov pages as shown in search excerpts (the pages themselves returned 403 to our reader, so we could not open them in full). Medicaid 138% for adults 19-64 and the 200% / $31,920 Essential Plan line match the 2026 income chart; 200% for one person also equals 2 x the $15,960 poverty guideline. The phone number is from a search summary, so confirm it. The page we pasted earlier (Medicaid Program Information) was only an index."
+    }
+  ]
+}

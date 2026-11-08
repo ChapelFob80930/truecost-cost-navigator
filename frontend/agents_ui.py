@@ -55,6 +55,41 @@ def trail_panel(meta: dict) -> None:
                 st.json(t["output"] if t["ok"] else {"error": t["error"]}, expanded=False)
 
 
+ICON = {"met": "✅", "not_met": "❌", "unknown": "❔", "not_applicable": "➖"}
+DECISION_LABEL = {"may_apply": "May be worth asking about", "need_more_info": "Need more information",
+                  "ruled_out": "Ruled out", "skipped": "Not shown"}
+
+
+def explain_panel(ex: dict) -> None:
+    """Why the assistant did each step and why each program is, or isn't, listed. Reasons are written by code."""
+    if not ex or not ex.get("steps"):
+        return
+    with st.expander("Why this answer? Reasons for every step", expanded=False):
+        st.caption("Every reason below is written by our code from the real numbers it used, not by the AI. "
+                   "Where the AI helped, it says so and says what checked it.")
+        for s in ex["steps"]:
+            st.markdown(f"**{s['n']}. {s['action']}**")
+            st.markdown(f"- **Why:** {s['why']}")
+            st.markdown(f"- **Found:** {s['result']}")
+            st.caption(f"Done by: {s['who']}" + (f" · Source: {s['source']}" if s.get("source") else ""))
+        if ex.get("program_checks"):
+            st.markdown("##### Program by program")
+            for c in ex["program_checks"]:
+                with st.container(border=True):
+                    st.markdown(f"**{c['program_name']}** · {DECISION_LABEL[c['decision']]}")
+                    st.markdown(c["reason"])
+                    st.table({"Rule": [x["criterion"] for x in c["criteria"]],
+                              "Your case": [x["your_value"] for x in c["criteria"]],
+                              "Program requires": [x["program_rule"] for x in c["criteria"]],
+                              "": [ICON[x["result"]] for x in c["criteria"]]})
+                    if c.get("source_url"):
+                        st.markdown(f"[Official source]({c['source_url']})")
+        if ex.get("not_checked"):
+            st.markdown("##### What we did not check")
+            for n in ex["not_checked"]:
+                st.markdown(f"- {n}")
+
+
 def _meta_footer(meta: dict) -> None:
     if meta.get("error"):
         st.warning(meta["error"])
@@ -113,6 +148,7 @@ def _assistance(api, case: dict, demo: bool) -> None:
             st.markdown(f"[Official source]({m['source_url']})")
     for n in r["not_found"]:
         st.info(n)
+    explain_panel(r.get("explanation"))
     _meta_footer(r["meta"])
 
 
@@ -161,6 +197,7 @@ def _appeal(api, case: dict, demo: bool) -> None:
     st.subheader("Next steps")
     for s in r["next_steps"]:
         st.markdown(f"- {s}")
+    explain_panel(r.get("explanation"))
     _meta_footer(r["meta"])
 
 

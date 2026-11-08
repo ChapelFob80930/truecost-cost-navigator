@@ -1,0 +1,210 @@
+{
+  "denial_summary_plain": "Your insurance plan, Univera PPO Plus, denied payment for your breast biopsy on 03/04/2026. They stated the service was not medically necessary. You can work with your care team to appeal this decision.",
+  "parsed": {
+    "denial_reason": "the service was not medically necessary",
+    "denied_service_or_code": "CPT 19083 (ultrasound-guided breast biopsy)",
+    "date": "03/04/2026",
+    "claim_or_reference_number": "DEMO-0001",
+    "appeal_deadline_if_stated": null,
+    "plan_name": "Univera PPO Plus",
+    "missing_documentation_mentioned": [
+      "radiology report"
+    ]
+  },
+  "case_check": {
+    "denied_code_in_confirmed": true,
+    "plan_consistent_with_case": true,
+    "flags": []
+  },
+  "documentation_checklist": [
+    "The radiology report for the biopsy",
+    "A written statement from your clinician explaining the need for the service"
+  ],
+  "letter": {
+    "letter_type": "internal_appeal",
+    "body": "[TODAY'S DATE]\n\nTo: Univera PPO Plus Appeals Department\n\nRe: Request to reconsider a denied service\nMember: Sarah Demo    Member ID: [MEMBER ID]\nClaim / reference number: DEMO-0001\nDate of denial: 03/04/2026\nService denied: CPT 19083 (ultrasound-guided breast biopsy)\n\nTo whom it may concern,\n\nI am writing to ask for a review of the decision described above. The notice gave this reason: \"the service was not medically necessary\".\n\nI am asking the plan to reconsider this decision. A statement from my clinician about this service is below.\n\n[CLINICIAN'S STATEMENT - to be written by your care team]\n\nPlease send me the written result of this review, and tell me if you need anything else from me to complete it.\n\nSincerely,\nSarah Demo\n\n(Draft for review with my care team or the hospital billing office before sending.)\n",
+    "placeholders": [
+      "[MEMBER ID]",
+      "[TODAY'S DATE]",
+      "[CLINICIAN'S STATEMENT - to be written by your care team]"
+    ]
+  },
+  "next_steps": [
+    "Confirm with your plan what the appeal deadline is, as it was not stated in your denial letter",
+    "Confirm with your care team if they can provide the needed medical records",
+    "Confirm with the hospital billing office if they can help you submit the appeal"
+  ],
+  "explanation": {
+    "steps": [
+      {
+        "n": 1,
+        "action": "Hid private details before the AI read the letter",
+        "why": "Names, member IDs, phone numbers and similar details shouldn't be sent to the AI. It only sees placeholders like [NAME_1]; the real values are put back afterwards, on our side.",
+        "result": "Replaced 3 private details (1 claim, 1 member id, 1 name).",
+        "who": "Code (a fixed rule, no AI)",
+        "source": null
+      },
+      {
+        "n": 2,
+        "action": "Read the denial letter",
+        "why": "To pull out only the facts the letter actually states, so the draft uses your real details and nothing is guessed.",
+        "result": "Found: the reason, the denied service, the denial date, the claim number, the plan name, documents the plan asked for. Not stated in the letter: an appeal deadline.",
+        "who": "The AI read it; code then removed any value that doesn't appear word for word in the letter",
+        "source": null
+      },
+      {
+        "n": 3,
+        "action": "Compared the letter with your case",
+        "why": "A mismatch can mean the wrong code was billed or the letter is for a different plan. This only compares facts; it never judges whether the denial is right.",
+        "result": "No mismatches found: the denied code and plan match your case.",
+        "who": "Code (a fixed rule, no AI)",
+        "source": null
+      },
+      {
+        "n": 4,
+        "action": "Built the letter from a fixed template",
+        "why": "A fixed template means the letter can only contain facts from your letter or that you typed. Nothing is invented, no law is cited, and no result is promised. Anything missing becomes a blank for you to fill in.",
+        "result": "3 blanks left to fill in: [MEMBER ID], [TODAY'S DATE], [CLINICIAN'S STATEMENT - to be written by your care team].",
+        "who": "Code (a fixed rule, no AI)",
+        "source": null
+      },
+      {
+        "n": 5,
+        "action": "Wrote the summary, document checklist and next steps",
+        "why": "To explain the letter in simple words and list what to ask your care team for.",
+        "result": "The AI's wording passed our checks: no verdicts, no legal claims, no numbers that aren't in the letter.",
+        "who": "The AI wrote it; code checked it",
+        "source": null
+      }
+    ],
+    "program_checks": [],
+    "not_checked": [
+      "Whether the denial is correct. This tool can't judge medical necessity or your plan's rules.",
+      "Your plan's appeal deadline, unless the letter states one. Confirm it with your plan."
+    ]
+  },
+  "meta": {
+    "mode": "live",
+    "model": "gemini-3.1-flash-lite",
+    "tool_calls_used": 3,
+    "trail": [
+      {
+        "step": 1,
+        "tool": "parse_denial",
+        "inputs": {
+          "text": "<274 chars, PHI scrubbed: {'MEMBER_ID': 1, 'CLAIM': 1, 'NAME': 1}>"
+        },
+        "output": {
+          "denial_reason": "the service was not medically necessary",
+          "denied_service_or_code": "CPT 19083 (ultrasound-guided breast biopsy)",
+          "date": "03/04/2026",
+          "claim_or_reference_number": "[CLAIM_1]",
+          "appeal_deadline_if_stated": null,
+          "plan_name": "Univera PPO Plus",
+          "missing_documentation_mentioned": [
+            "radiology report"
+          ]
+        },
+        "source": null,
+        "ok": true,
+        "error": null,
+        "duration_ms": 938
+      },
+      {
+        "step": 2,
+        "tool": "check_against_case",
+        "inputs": {
+          "parsed": {
+            "denial_reason": "the service was not medically necessary",
+            "denied_service_or_code": "CPT 19083 (ultrasound-guided breast biopsy)",
+            "date": "03/04/2026",
+            "claim_or_reference_number": "DEMO-0001",
+            "appeal_deadline_if_stated": null,
+            "plan_name": "Univera PPO Plus",
+            "missing_documentation_mentioned": [
+              "radiology report"
+            ]
+          },
+          "case": {
+            "confirmed_codes": [
+              "77065",
+              "76642",
+              "19083",
+              "88305"
+            ],
+            "uninsured": false,
+            "insurer": "Univera",
+            "plan": "PPO",
+            "deductible_remaining": 1200.0,
+            "coinsurance_pct": 20.0,
+            "oop_max_remaining": 4000.0,
+            "estimates": [
+              {
+                "hospital": "Buffalo General Medical Center",
+                "patient_oop": 1660.0,
+                "total_allowed": 3501.0,
+                "complete": true
+              },
+              {
+                "hospital": "Roswell Park",
+                "patient_oop": 1846.0,
+                "total_allowed": 4428.0,
+                "complete": true
+              },
+              {
+                "hospital": "ECMC",
+                "patient_oop": 0.0,
+                "total_allowed": 0.0,
+                "complete": false
+              }
+            ],
+            "household_size": 3,
+            "annual_income": 52000.0
+          }
+        },
+        "output": {
+          "denied_code_in_confirmed": true,
+          "plan_consistent_with_case": true,
+          "flags": []
+        },
+        "source": null,
+        "ok": true,
+        "error": null,
+        "duration_ms": 0
+      },
+      {
+        "step": 3,
+        "tool": "draft_letter",
+        "inputs": {
+          "letter_type": "internal_appeal",
+          "fact_keys": [
+            "claim_number",
+            "denial_date",
+            "denial_reason",
+            "denied_service",
+            "patient_name",
+            "plan_name"
+          ]
+        },
+        "output": {
+          "letter_type": "internal_appeal",
+          "body": "[TODAY'S DATE]\n\nTo: Univera PPO Plus Appeals Department\n\nRe: Request to reconsider a denied service\nMember: Sarah Demo    Member ID: [MEMBER ID]\nClaim / reference number: DEMO-0001\nDate of denial: 03/04/2026\nService denied: CPT 19083 (ultrasound-guided breast biopsy)\n\nTo whom it may concern,\n\nI am writing to ask for a review of the decision described above. The notice gave this reason: \"the service was not medically necessary\".\n\nI am asking the plan to reconsider this decision. A statement from my clinician about this service is below.\n\n[CLINICIAN'S STATEMENT - to be written by your care team]\n\nPlease send me the written result of this review, and tell me if you need anything else from me to complete it.\n\nSincerely,\nSarah Demo\n\n(Draft for review with my care team or the hospital billing office before sending.)\n",
+          "placeholders": [
+            "[MEMBER ID]",
+            "[TODAY'S DATE]",
+            "[CLINICIAN'S STATEMENT - to be written by your care team]"
+          ]
+        },
+        "source": null,
+        "ok": true,
+        "error": null,
+        "duration_ms": 0
+      }
+    ],
+    "disclaimers": [
+      "Educational information only. This is not medical, legal or financial advice, and it cannot tell you whether you qualify for anything."
+    ],
+    "handoff": "Talk to a patient navigator, the hospital billing office, or your care team before you act on this.",
+    "error": null
+  }
+}

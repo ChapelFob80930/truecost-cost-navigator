@@ -16,6 +16,12 @@ export interface Insurance {
 
 export interface ExtractedCode { code: string; type: "CPT" | "ICD10"; description: string; confidence: number; evidence: string }
 export interface ExtractResponse { codes: ExtractedCode[]; extractor: string }
+export interface ExtractFileResponse extends ExtractResponse {
+  note_text: string;   // the text read from the file: show it in an editable box so the patient can fix OCR mistakes
+  read_method: "text" | "docx" | "pdf-text" | "gemini-ocr";
+  file_type: "pdf" | "png" | "jpeg" | "webp" | "docx" | "txt";
+  truncated: boolean;  // note was longer than 20,000 characters and was cut
+}
 
 export interface EstimateLine {
   code: string; description: string | null; rate: number; patient_pays: number; rule: string;
@@ -53,14 +59,19 @@ export interface MatchedProgram {
   match_basis: "income_at_or_below_listed_threshold" | "no_income_threshold_listed" | "need_more_information";
   why: string; eligibility_summary: string; contact: string; source_url: string; next_step: string; questions_for_billing_office: string[];
 }
-export interface AssistanceResponse { fpl: FplResult | null; matches: MatchedProgram[]; not_found: string[]; summary_plain: string; meta: AgentMeta }
+// Explainable AI: reasons are written by code from the real values used (never the model's own account of itself)
+export interface CriterionCheck { criterion: string; your_value: string; program_rule: string; result: "met" | "not_met" | "unknown" | "not_applicable" }
+export interface ProgramCheck { program_name: string; sponsor: string; decision: "may_apply" | "need_more_info" | "ruled_out" | "skipped"; reason: string; criteria: CriterionCheck[]; source_url: string | null }
+export interface ExplainStep { n: number; action: string; why: string; result: string; who: string; source: string | null }
+export interface Explanation { steps: ExplainStep[]; program_checks: ProgramCheck[]; not_checked: string[] }
+export interface AssistanceResponse { fpl: FplResult | null; matches: MatchedProgram[]; not_found: string[]; summary_plain: string; explanation: Explanation; meta: AgentMeta }
 
 export interface ParsedDenial { denial_reason: string | null; denied_service_or_code: string | null; date: string | null; claim_or_reference_number: string | null; appeal_deadline_if_stated: string | null; plan_name: string | null; missing_documentation_mentioned: string[] | null }
 export interface CaseFlag { kind: string; message: string }
 export interface AppealResponse {
   denial_summary_plain: string; parsed: ParsedDenial;
   case_check: { denied_code_in_confirmed: boolean | null; plan_consistent_with_case: boolean | null; flags: CaseFlag[] };
-  documentation_checklist: string[]; letter: { letter_type: string; body: string; placeholders: string[] }; next_steps: string[]; meta: AgentMeta;
+  documentation_checklist: string[]; letter: { letter_type: string; body: string; placeholders: string[] }; next_steps: string[]; explanation: Explanation; meta: AgentMeta;
 }
 
 // ---------- fetch helper ----------
@@ -86,6 +97,19 @@ export const api = {
   plans: (insurer: Insurer) => call<string[]>(`/api/v1/plans?insurer=${encodeURIComponent(insurer)}`),
   codes: () => call<{ code: string; code_type: string; description: string; phase: string }[]>("/api/v1/codes"),
   extract: (note: string) => post<ExtractResponse>("/extract", { note }),
+  // Upload a doctor's note (PDF, PNG, JPEG, WEBP, DOCX or TXT, max 10 MB). Do NOT set Content-Type: the browser adds the multipart boundary.
+  extractFile: async (file: File): Promise<ExtractFileResponse> => {
+    const form = new FormData();
+    form.append("file", file);
+    let res: Response;
+    try { res = await fetch(`${API_BASE}/extract/file`, { method: "POST", body: form, headers: { "ngrok-skip-browser-warning": "true" } }); }
+    catch { throw new Error("Can't reach the TrueCost server. Check your connection, or paste the note text instead."); }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(typeof body.detail === "string" ? body.detail : `Upload failed (${res.status})`);
+    }
+    return res.json() as Promise<ExtractFileResponse>;
+  },
   estimate: (codes: string[], insurance: Insurance, patient_zip?: string, include_estimates = true) =>
     post<EstimateResponse>("/estimate", { codes, insurance, patient_zip, include_estimates }),
   simulate: (p: { codes: string[]; insurance: Insurance; patient_zip?: string; hospital?: string; pathway?: PathwayStep[]; include_estimates?: boolean }) =>

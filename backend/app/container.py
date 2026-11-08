@@ -13,6 +13,7 @@ from .services.agent_service import AgentService
 from .services.estimate_service import EstimateService
 from .services.extraction import CodeExtractor, KeywordCodeExtractor
 from .services.gemini_extractor import FallbackExtractor, GeminiCodeExtractor
+from .services.note_reader import GeminiTranscriber, NoteReader
 
 
 @dataclass
@@ -21,6 +22,7 @@ class Container:
     estimator: EstimateService
     extractor: CodeExtractor
     agents: AgentService
+    reader: NoteReader
 
     @classmethod
     def build(cls, settings: Settings) -> "Container":
@@ -34,14 +36,17 @@ class Container:
             extractor = FallbackExtractor(
                 GeminiCodeExtractor(repo, settings.gemini_api_key, settings.gemini_model), extractor)
         agent_model = GeminiChat(settings.gemini_api_key, settings.gemini_model) if settings.gemini_api_key else None
-        return cls.from_repo(repo, extractor, agent_model)
+        transcriber = GeminiTranscriber(settings.gemini_api_key, settings.gemini_model) if settings.gemini_api_key else None
+        return cls.from_repo(repo, extractor, agent_model, reader=NoteReader(transcriber))
 
     @classmethod
     def from_repo(cls, repo: PriceRepository, extractor: CodeExtractor | None = None,
-                  agent_model: ChatModel | None = None, agent_service: AgentService | None = None) -> "Container":
+                  agent_model: ChatModel | None = None, agent_service: AgentService | None = None,
+                  reader: NoteReader | None = None) -> "Container":
         return cls(
             repo=repo,
             estimator=EstimateService(repo, PlanTypeSelector(), GeoService()),
             extractor=extractor or KeywordCodeExtractor(repo),
             agents=agent_service or AgentService(agent_model),
+            reader=reader or NoteReader(),
         )

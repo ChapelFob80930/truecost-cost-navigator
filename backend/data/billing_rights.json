@@ -1,0 +1,18 @@
+{
+  "_instructions": [
+    "CURATED 'billing rights' reference for the Appeal Letter agent. The agent may ONLY mention a law or regulation if it appears here with verified=true and a source_url.",
+    "Every row is a PLACEHOLDER until you verify it against the official text. Do not paraphrase from memory.",
+    "Run: python scripts/validate_assistance.py"
+  ],
+  "entries": [
+    {
+      "id": "TODO-VERIFY-1",
+      "topic": "TODO-VERIFY: e.g. right to request a written reason for a denial",
+      "plain_summary": "TODO-VERIFY: one or two plain sentences, copied or closely based on the official text",
+      "citation": "TODO-VERIFY: exact citation as the official source gives it",
+      "source_url": "TODO-VERIFY: official page",
+      "retrieved_date": "1900-01-01",
+      "verified": false
+    }
+  ]
+}

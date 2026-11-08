@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from ..config import PROJECT_ROOT
-from .schemas import AssistanceProgram
+from .schemas import AssistanceProgram, CriterionCheck
 
 DEFAULT_PROGRAMS_PATH = PROJECT_ROOT / "backend" / "data" / "assistance_programs.json"
 
@@ -25,6 +25,67 @@ DEFAULT_PROGRAMS_PATH = PROJECT_ROOT / "backend" / "data" / "assistance_programs
 class ProgramMatch:
     program: AssistanceProgram
     basis: str  # income_at_or_below_listed_threshold | no_income_threshold_listed | need_more_information
+
+
+@dataclass
+class ProgramEvaluation:
+    """Result of checking ONE program against ONE case. The single source of truth for 'does it apply':
+    lookup_assistance (what is returned) and the explanation (why) both use it, so they cannot disagree."""
+    decision: str                      # may_apply | need_more_info | ruled_out | skipped
+    basis: Optional[str]               # set when decision is may_apply / need_more_info
+    reason: str
+    criteria: List[CriterionCheck]
+    ruled_out_by: Optional[str] = None  # "coverage" | "income"
+
+
+_COVERAGE_WORDS = {"insured": "people who have insurance", "uninsured": "uninsured patients", "both": "patients with or without insurance"}
+
+
+def evaluate_program(p: AssistanceProgram, fpl_percent: Optional[float], uninsured: Optional[bool]) -> ProgramEvaluation:
+    if not p.verified:
+        return ProgramEvaluation("skipped", None, "Not shown: we haven't verified this program against an official source yet.",
+                                 [CriterionCheck(criterion="Verified source", your_value="n/a",
+                                                 program_rule="Only programs checked against an official source are shown", result="not_met")])
+    criteria: List[CriterionCheck] = [CriterionCheck(criterion="Verified source", your_value="n/a",
+                                                     program_rule="Checked against an official source", result="met")]
+
+    # 1) coverage
+    mine = {True: "Uninsured", False: "Has insurance", None: "Not stated"}[uninsured]
+    rule = f"Open to {_COVERAGE_WORDS.get(p.applies_to, p.applies_to)}"
+    if p.applies_to == "both":
+        cov = "met"
+    elif uninsured is None:
+        cov = "unknown"
+    else:
+        cov = "met" if (p.applies_to == "uninsured") == uninsured else "not_met"
+    criteria.append(CriterionCheck(criterion="Insurance status", your_value=mine, program_rule=rule, result=cov))
+    if cov == "not_met":
+        return ProgramEvaluation("ruled_out", None,
+                                 f"Ruled out: this program is for {_COVERAGE_WORDS[p.applies_to]}, and your case says: {mine.lower()}.",
+                                 criteria, "coverage")
+
+    # 2) income
+    if p.fpl_threshold_pct is None:
+        criteria.append(CriterionCheck(criterion="Income limit", your_value="n/a", program_rule="No income limit listed in our table",
+                                       result="not_applicable"))
+        return ProgramEvaluation("may_apply", "no_income_threshold_listed",
+                                 "May be worth asking about: no income limit is listed, so we can't rule it out.", criteria)
+    limit = f"At or below {p.fpl_threshold_pct:g}% of the Federal Poverty Level"
+    if fpl_percent is None:
+        criteria.append(CriterionCheck(criterion="Income limit", your_value="Not entered", program_rule=limit, result="unknown"))
+        return ProgramEvaluation("need_more_info", "need_more_information",
+                                 "Can't tell yet: this program has an income limit and household size and income haven't been entered.",
+                                 criteria)
+    ok = fpl_percent <= p.fpl_threshold_pct
+    criteria.append(CriterionCheck(criterion="Income limit", your_value=f"About {fpl_percent:g}% of the Federal Poverty Level",
+                                   program_rule=limit, result="met" if ok else "not_met"))
+    if ok:
+        return ProgramEvaluation("may_apply", "income_at_or_below_listed_threshold",
+                                 f"May be worth asking about: your income (about {fpl_percent:g}% of the poverty level) "
+                                 f"is at or below the listed limit of {p.fpl_threshold_pct:g}%.", criteria)
+    return ProgramEvaluation("ruled_out", None,
+                             f"Ruled out: your income (about {fpl_percent:g}% of the poverty level) is above the listed "
+                             f"limit of {p.fpl_threshold_pct:g}%.", criteria, "income")
 
 
 @dataclass
@@ -51,19 +112,14 @@ def lookup_assistance(fpl_percent: Optional[float], hospital_or_program: Optiona
     for p in load_programs(path):
         if needle and needle not in p.program_name.lower() and needle not in p.sponsor.lower():
             continue
-        if not p.verified:
+        ev = evaluate_program(p, fpl_percent, uninsured)
+        if ev.decision == "skipped":
             result.skipped_unverified.append(p.program_name)
-            continue
-        if uninsured is not None and p.applies_to != "both" and (p.applies_to == "uninsured") != uninsured:
-            continue
-        if p.fpl_threshold_pct is None:
-            result.matches.append(ProgramMatch(p, "no_income_threshold_listed"))
-        elif fpl_percent is None:
-            result.matches.append(ProgramMatch(p, "need_more_information"))
-        elif fpl_percent <= p.fpl_threshold_pct:
-            result.matches.append(ProgramMatch(p, "income_at_or_below_listed_threshold"))
+        elif ev.decision == "ruled_out":
+            if ev.ruled_out_by == "income":
+                result.above_threshold.append(p.program_name)
         else:
-            result.above_threshold.append(p.program_name)
+            result.matches.append(ProgramMatch(p, ev.basis or "no_income_threshold_listed"))
     result.found_nothing = not result.matches
     return result
 

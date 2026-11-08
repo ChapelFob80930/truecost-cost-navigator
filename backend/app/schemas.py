@@ -127,3 +127,10 @@ class ExtractedCodeOut(BaseModel):
 class ExtractResponse(BaseModel):
     codes: List[ExtractedCodeOut]
     extractor: str = Field(..., description="Extractor name incl. exact model string")
+
+
+class ExtractFileResponse(ExtractResponse):
+    note_text: str = Field(..., description="The text read from the file. Show it so the patient can check it (OCR can misread).")
+    read_method: str = Field(..., description="text | docx | pdf-text | gemini-ocr")
+    file_type: str = Field(..., description="pdf | png | jpeg | webp | docx | txt")
+    truncated: bool = Field(False, description="True if the note was longer than 20,000 characters and was cut")

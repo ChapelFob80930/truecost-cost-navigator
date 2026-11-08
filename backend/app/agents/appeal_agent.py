@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from ..domain.case import Case
 from .denial import check_against_case, draft_letter, parse_denial
+from .explain import appeal_explanation
 from .guards import safe_text
 from .llm import ChatModel
 from .loop import to_jsonable
@@ -77,6 +78,7 @@ def run_appeal_agent(model: ChatModel, case: Case, denial_text: Optional[str], l
     llm_extract = lambda system, t: model.final_json(DENIAL_PARSE_PROMPT, t, DENIAL_SCHEMA)  # noqa: E731
     scrubbed_parsed = _step(trail, "parse_denial", {"text": f"<{len(sc.text)} chars, PHI scrubbed: {sc.found}>"},
                             lambda: parse_denial(sc.text, llm_extract, DENIAL_PARSE_PROMPT))
+    parse_ok = scrubbed_parsed is not None
     if scrubbed_parsed is None:
         error = "We couldn't read the letter automatically. The draft below has blanks for you to fill in."
         scrubbed_parsed = ParsedDenial()
@@ -101,6 +103,7 @@ def run_appeal_agent(model: ChatModel, case: Case, denial_text: Optional[str], l
     # wording from the LLM, using the SCRUBBED parse only; any guard failure -> standard wording
     summary, checklist, steps = _fallback_summary(parsed), GENERIC_CHECKLIST + list(parsed.missing_documentation_mentioned or []), _fallback_steps(parsed)
     replaced: Optional[str] = None
+    ai_wording_used = False
     try:
         blob = json.dumps(scrubbed_parsed.model_dump(), ensure_ascii=False)
         raw = model.final_json(APPEAL_SYSTEM_PROMPT, APPEAL_NARRATIVE_PROMPT + blob, NARRATIVE_SCHEMA)
@@ -112,6 +115,7 @@ def run_appeal_agent(model: ChatModel, case: Case, denial_text: Optional[str], l
             checklist, steps = items, steps_raw
         replaced = r1 or (None if joined_ok else "checklist or steps failed a guard")
         summary = s
+        ai_wording_used = True
     except Exception as e:  # noqa: BLE001
         error = error or f"The AI wording failed ({type(e).__name__}); showing standard wording."
 
@@ -121,5 +125,7 @@ def run_appeal_agent(model: ChatModel, case: Case, denial_text: Optional[str], l
     meta = AgentMeta(mode="live", model=model.model_name, tool_calls_used=len(trail), trail=trail, error=error)
     if replaced:
         meta.disclaimers = meta.disclaimers + [f"Some AI wording was replaced with standard wording ({replaced})."]
+    explanation = appeal_explanation(sc.found, parsed, parse_ok, check, letter, ai_wording_used, replaced)
     return AppealDraftResponse(denial_summary_plain=summary, parsed=parsed, case_check=check,
-                               documentation_checklist=checklist, letter=letter, next_steps=steps, meta=meta)
+                               documentation_checklist=checklist, letter=letter, next_steps=steps,
+                               explanation=explanation, meta=meta)

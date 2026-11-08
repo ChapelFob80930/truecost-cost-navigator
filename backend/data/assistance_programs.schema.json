@@ -1,0 +1,84 @@
+{
+  "description": "A row of the curated assistance table (JSON/SQLite). Mirrors the schema you fill from official sources.",
+  "properties": {
+    "program_name": {
+      "title": "Program Name",
+      "type": "string"
+    },
+    "sponsor": {
+      "title": "Sponsor",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "hospital charity care",
+        "public program",
+        "nonprofit"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "eligibility_summary": {
+      "title": "Eligibility Summary",
+      "type": "string"
+    },
+    "fpl_threshold_pct": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fpl Threshold Pct"
+    },
+    "applies_to": {
+      "enum": [
+        "insured",
+        "uninsured",
+        "both"
+      ],
+      "title": "Applies To",
+      "type": "string"
+    },
+    "how_to_apply": {
+      "title": "How To Apply",
+      "type": "string"
+    },
+    "contact": {
+      "title": "Contact",
+      "type": "string"
+    },
+    "source_url": {
+      "title": "Source Url",
+      "type": "string"
+    },
+    "retrieved_date": {
+      "format": "date",
+      "title": "Retrieved Date",
+      "type": "string"
+    },
+    "verified": {
+      "default": false,
+      "description": "False = PLACEHOLDER row; must never be shown as fact",
+      "title": "Verified",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "program_name",
+    "sponsor",
+    "type",
+    "eligibility_summary",
+    "applies_to",
+    "how_to_apply",
+    "contact",
+    "source_url",
+    "retrieved_date"
+  ],
+  "title": "AssistanceProgram",
+  "type": "object"
+}

@@ -41,6 +41,42 @@ class AgentMeta(BaseModel):
     error: Optional[str] = Field(None, description="Set when the agent stopped early (e.g. tool cap, API failure)")
 
 
+# ------------------------------------------------------------------------------ explainability (both agents)
+class CriterionCheck(BaseModel):
+    """One rule of one program, checked against the patient's case. Written by code from the real values used."""
+    criterion: str = Field(..., description="e.g. 'Income limit', 'Insurance status', 'Verified source'")
+    your_value: str = Field(..., description="What the case says, in plain words")
+    program_rule: str = Field(..., description="What the program's published policy requires")
+    result: Literal["met", "not_met", "unknown", "not_applicable"]
+
+
+class ProgramCheck(BaseModel):
+    """Why a program is, or is not, in the results. Covers every program in the table, not only the matches."""
+    program_name: str
+    sponsor: str
+    decision: Literal["may_apply", "need_more_info", "ruled_out", "skipped"]
+    reason: str = Field(..., description="One plain sentence: the deciding rule")
+    criteria: List[CriterionCheck] = Field(default_factory=list)
+    source_url: Optional[str] = None
+
+
+class ExplainStep(BaseModel):
+    """One step the agent took, with the reason for it. Reasons come from code, never from a model's self-description."""
+    n: int = Field(..., ge=1)
+    action: str = Field(..., description="What happened")
+    why: str = Field(..., description="Why this step is done")
+    result: str = Field(..., description="What it found, with the real numbers")
+    who: str = Field(..., description="Who did it: code, or AI (and what checked the AI)")
+    source: Optional[str] = None
+
+
+class Explanation(BaseModel):
+    steps: List[ExplainStep] = Field(default_factory=list)
+    program_checks: List[ProgramCheck] = Field(default_factory=list)
+    not_checked: List[str] = Field(default_factory=list,
+                                   description="What the agent did NOT check, or does not know, that could change the answer")
+
+
 # ------------------------------------------------------------------------------ agent 1: assistance matcher
 class FplResult(BaseModel):
     household_size: int = Field(..., ge=1)
@@ -104,6 +140,8 @@ class AssistanceMatchResponse(BaseModel):
     not_found: List[str] = Field(default_factory=list,
                                  description="Programs searched with no entry in the table: 'I couldn't find this'")
     summary_plain: str = Field(..., description="About a 6th-grade reading level; no eligibility verdicts")
+    explanation: Explanation = Field(default_factory=Explanation,
+                                     description="Why each step was taken and why each program is or isn't listed")
     meta: AgentMeta = Field(default_factory=AgentMeta)
 
     @model_validator(mode="after")
@@ -173,4 +211,5 @@ class AppealDraftResponse(BaseModel):
     documentation_checklist: List[str] = Field(default_factory=list, description="To request from the care team")
     letter: LetterDraft
     next_steps: List[str] = Field(default_factory=list, description="Always phrased as 'confirm with your plan'")
+    explanation: Explanation = Field(default_factory=Explanation, description="Why each step was taken")
     meta: AgentMeta = Field(default_factory=AgentMeta)

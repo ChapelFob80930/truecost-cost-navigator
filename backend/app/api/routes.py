@@ -6,15 +6,16 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 
 from ..container import Container
+from ..services.note_reader import MAX_BYTES
 from ..domain.models import Payer
 from ..domain.plan_types import available_types
 from ..agents.schemas import (AppealDraftRequest, AppealDraftResponse, AssistanceMatchRequest,
                               AssistanceMatchResponse)
-from ..schemas import (CodeOut, EstimateRequest, EstimateResponse, ExtractedCodeOut, ExtractRequest,
-                       ExtractResponse, HospitalOut, SimulateRequest, SimulateResponse)
+from ..schemas import (CodeOut, EstimateRequest, EstimateResponse, ExtractedCodeOut, ExtractFileResponse,
+                       ExtractRequest, ExtractResponse, HospitalOut, SimulateRequest, SimulateResponse)
 
 router = APIRouter()
 ref = APIRouter(prefix="/api/v1")
@@ -47,6 +48,21 @@ def extract_codes(body: ExtractRequest, c: Container = Depends(get_container)):
     found = c.extractor.extract(body.note)
     return ExtractResponse(
         extractor=c.extractor.name,
+        codes=[ExtractedCodeOut(code=x.code, type=x.code_type, description=x.description,
+                                confidence=x.confidence, evidence=x.evidence) for x in found])
+
+
+@router.post("/extract/file", response_model=ExtractFileResponse, tags=["ai"])
+def extract_codes_from_file(file: UploadFile = File(..., description="PDF, PNG, JPEG, WEBP, DOCX or TXT, up to 10 MB"),
+                            c: Container = Depends(get_container)):
+    """Same as /extract, but the doctor's note is an uploaded file (typed, scanned or photographed).
+    The text read from the file comes back too, so the patient can check it before confirming codes."""
+    data = file.file.read(MAX_BYTES + 1)   # never read more than the cap
+    note = c.reader.read(data)
+    found = c.extractor.extract(note.text)
+    return ExtractFileResponse(
+        extractor=c.extractor.name, note_text=note.text, read_method=note.method, file_type=note.file_type,
+        truncated=note.truncated,
         codes=[ExtractedCodeOut(code=x.code, type=x.code_type, description=x.description,
                                 confidence=x.confidence, evidence=x.evidence) for x in found])
 

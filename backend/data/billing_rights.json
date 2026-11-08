@@ -1,18 +1,91 @@
 {
   "_instructions": [
     "CURATED 'billing rights' reference for the Appeal Letter agent. The agent may ONLY mention a law or regulation if it appears here with verified=true and a source_url.",
-    "Every row is a PLACEHOLDER until you verify it against the official text. Do not paraphrase from memory.",
-    "Run: python scripts/validate_assistance.py"
+    "Every entry was verified on 2026-11-08 against the official source text at its source_url (cms.gov, health.ny.gov, or dfs.ny.gov). Each plain_summary is closely based on that source's wording, in plain English, and is not legal advice.",
+    "Entries that could not be verified against an official source that was opened and read are not in this file; see VERIFICATION_LOG.md for what was dropped and why.",
+    "Do not paraphrase from memory. If a right is not listed here with verified=true and a source_url, do not cite it."
   ],
   "entries": [
     {
-      "id": "TODO-VERIFY-1",
-      "topic": "TODO-VERIFY: e.g. right to request a written reason for a denial",
-      "plain_summary": "TODO-VERIFY: one or two plain sentences, copied or closely based on the official text",
-      "citation": "TODO-VERIFY: exact citation as the official source gives it",
-      "source_url": "TODO-VERIFY: official page",
-      "retrieved_date": "1900-01-01",
-      "verified": false
+      "citation": "No Surprises Act, 42 U.S.C. 300gg-131, 300gg-132; 45 CFR Part 149",
+      "id": "nsa-surprise-bill",
+      "plain_summary": "Federal law bans surprise bills for most emergency services. If you get emergency care, or certain non-emergency care at an in-network hospital, your out-of-network cost-sharing cannot be higher than what you would pay in-network, and the provider cannot balance bill you for the rest. These protections can only be waived if you get a notice and give written consent. The federal law is a floor: it adds to, and does not replace, New York's own surprise-bill protections.",
+      "retrieved_date": "2026-11-08",
+      "source_url": "https://www.cms.gov/newsroom/fact-sheets/no-surprises-understand-your-rights-against-surprise-medical-bills",
+      "topic": "No Surprises Act: protection against surprise medical bills",
+      "verified": true
+    },
+    {
+      "citation": "45 CFR 149.610 (Good Faith Estimate); 45 CFR 149.620 (Patient-Provider Dispute Resolution)",
+      "id": "gfe-dispute-resolution",
+      "plain_summary": "If you do not have health insurance, or you pay for care yourself without using insurance, you can ask for a good faith estimate of what your care will cost before you get it. If the final bill is at least $400 more than the estimate, you can start a patient-provider dispute resolution process within 120 calendar days of the date on the bill.",
+      "retrieved_date": "2026-11-08",
+      "source_url": "https://www.cms.gov/newsroom/fact-sheets/no-surprises-understand-your-rights-against-surprise-medical-bills",
+      "topic": "Good Faith Estimate and patient-provider dispute resolution (uninsured and self-pay patients)",
+      "verified": true
+    },
+    {
+      "citation": "NY Insurance Law § 3241; NY Financial Services Law Article 6",
+      "id": "ny-surprise-bill-idr",
+      "plain_summary": "In New York, if you have a fully-insured plan, the Empire Plan, or a student health plan and you get a surprise bill, you only owe your normal in-network cost-sharing. If you think a surprise bill is wrong, you can ask the Department of Financial Services for an independent dispute resolution review, and the fee is waived if your household income is below 250% of the federal poverty level. Uninsured patients can also use New York's dispute process for excessive emergency-services bills. Hospitals must post their charges, the health plans they work with, and contact information for their doctors' groups on their websites.",
+      "retrieved_date": "2026-11-08",
+      "source_url": "https://www.dfs.ny.gov/consumers/health_insurance/surprise_medical_bills",
+      "topic": "New York surprise-bill protections and Independent Dispute Resolution (IDR)",
+      "verified": true
+    },
+    {
+      "citation": "NY Public Health Law § 2807-k(9-a)",
+      "id": "ny-hospital-financial-assistance",
+      "plain_summary": "New York hospitals must offer financial assistance for emergency and medically necessary care to patients who qualify. People with household income up to 400% of the federal poverty level are eligible, including low-income uninsured patients and underinsured patients whose out-of-pocket medical costs in the past 12 months were more than 10% of their gross annual income. Every hospital licensed by the New York State Department of Health must use the same uniform application form, and immigration status cannot be used as an eligibility criterion.",
+      "retrieved_date": "2026-11-08",
+      "source_url": "https://www.health.ny.gov/facilities/hospital/financial_assist/",
+      "topic": "New York hospital financial assistance (charity care)",
+      "verified": true
+    },
+    {
+      "citation": "Section 2718(e) of the Public Health Service Act; 45 CFR Part 180",
+      "id": "hospital-price-transparency",
+      "plain_summary": "Every hospital in the United States must make its standard charges public in two ways: a single comprehensive machine-readable file listing all standard charges for all items and services, including gross charges, discounted cash prices, and payer-negotiated charges; and a consumer-friendly display of at least 300 shoppable services, or a price estimator that gives a personalized out-of-pocket estimate using your insurance information.",
+      "retrieved_date": "2026-11-08",
+      "source_url": "https://www.cms.gov/newsroom/fact-sheets/hospital-price-transparency-enforcement-updates",
+      "topic": "Hospital price transparency: the right to see a hospital's standard charges",
+      "verified": true
+    },
+    {
+      "citation": "NY Insurance Law Article 49",
+      "id": "ny-external-appeal",
+      "plain_summary": "If your health plan denies care as not medically necessary, experimental or investigational, or out-of-network, you have the right to appeal to the New York State Department of Financial Services. You must send your appeal within 4 months of the final adverse determination from your internal appeal. An independent external appeal agent reviews the case and decides within 30 days for a standard appeal or 72 hours for an expedited appeal, and the decision is binding on you and your health plan. The health plan may charge $25 per appeal, up to $75 in a plan year, and the fee is waived for Medicaid, Child Health Plus, Family Health Plus, or if it would be a hardship.",
+      "retrieved_date": "2026-11-08",
+      "source_url": "https://www.dfs.ny.gov/complaints/file_external_appeal",
+      "topic": "New York external appeal of a health plan denial",
+      "verified": true
+    },
+    {
+      "citation": "42 U.S.C. 1395dd; Section 1867 of the Social Security Act",
+      "id": "emtala-emergency-care",
+      "plain_summary": "Federal law requires Medicare-participating hospitals that offer emergency services to give you a medical screening examination when you ask for examination or treatment for an emergency medical condition, including active labor, regardless of your ability to pay. The hospital must then provide stabilizing treatment, and if it cannot stabilize you, it must arrange an appropriate transfer.",
+      "retrieved_date": "2026-11-08",
+      "source_url": "https://www.cms.gov/Regulations-and-Guidance/Legislation/EMTALA/index.html",
+      "topic": "Emergency care regardless of ability to pay (EMTALA)",
+      "verified": true
+    },
+    {
+      "citation": "NY Public Health Law § 2803(1)(g); 10 NYCRR 405.7, 405.7(a)(1), 405.7(c)",
+      "id": "ny-itemized-bill",
+      "plain_summary": "As a patient in a hospital in New York State, you have the right to receive an itemized bill and an explanation of all charges. You also have the right to view a list of the hospital's standard charges for items and services and the health plans it participates with, to review your medical record without charge, and to complain without fear of reprisal, including to the New York State Health Department.",
+      "retrieved_date": "2026-11-08",
+      "source_url": "https://health.ny.gov/publications/1500/",
+      "topic": "Right to an itemized bill and an explanation of all charges (New York)",
+      "verified": true
+    },
+    {
+      "citation": "NY Insurance Law Article 49",
+      "id": "ny-internal-appeal-denial-notice",
+      "plain_summary": "When your health plan denies a request for care, it must send you a notice, called an Initial Adverse Determination, that explains the reason your request was denied, how long you have to file an appeal, and where to send your appeal. You or your designee can submit an internal appeal directly to your health plan within 180 days. If the internal appeal is denied, the plan must issue a Final Adverse Determination, and you then have 120 days from receiving it to request an external appeal.",
+      "retrieved_date": "2026-11-08",
+      "source_url": "https://www.dfs.ny.gov/system/files/documents/2025/09/Health-Plan-Decision.pdf",
+      "topic": "Right to a written reason for a denial and an internal appeal",
+      "verified": true
     }
   ]
 }

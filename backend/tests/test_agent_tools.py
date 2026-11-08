@@ -268,11 +268,16 @@ def test_shipped_table_loads_and_every_verified_row_is_complete():
     assert not any("TODO" in n for n in names)                                    # placeholders can never match
 
 
-def test_shipped_files_pass_audit_and_billing_rights_template_is_all_placeholder():
+def test_shipped_files_pass_audit_and_billing_rights_are_verified_from_official_sources():
     assert audit_programs(DEFAULT_PROGRAMS_PATH) == []
     rights = DEFAULT_PROGRAMS_PATH.parent / "billing_rights.json"
     assert audit_billing_rights(rights) == []
-    assert not any(e["verified"] for e in json.loads(rights.read_text())["entries"])
+    entries = json.loads(rights.read_text(encoding="utf-8"))["entries"]
+    assert entries and all(e["verified"] for e in entries)                         # no placeholder rows are left
+    assert len({e["id"] for e in entries}) == len(entries)                         # unique ids
+    official = {"cms.gov", "dfs.ny.gov", "health.ny.gov"}                          # only official sources may back a stated right
+    assert all(e["source_url"].split("/")[2].removeprefix("www.") in official for e in entries)
+    assert not any("TODO" in json.dumps(e) for e in entries)
 
 
 def test_audit_rejects_verified_rows_that_are_not_really_verified(programs):

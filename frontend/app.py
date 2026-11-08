@@ -329,7 +329,7 @@ if ss["found"] is not None:
 
 
 # ----------------------------------------------------------------------------- assistant flows
-render_agents(api)
+render_agents(api, API)
 
 
 # ----------------------------------------------------------------------------- live usage (time-series from Tiger Data)

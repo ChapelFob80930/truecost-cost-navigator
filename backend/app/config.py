@@ -27,6 +27,7 @@ class Settings:
     gemini_api_key: Optional[str] = None
     database_url: Optional[str] = None   # Postgres / Tiger Data; if unset the app uses the SQLite file
     gemini_model: str = "gemini-3.1-flash-lite"
+    gemini_fallback_model: Optional[str] = "gemini-3.5-flash-lite"   # used only if the main model keeps failing; empty = off
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -37,4 +38,5 @@ class Settings:
             gemini_api_key=os.getenv("GEMINI_API_KEY") or None,
             database_url=os.getenv("DATABASE_URL") or None,
             gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"),
+            gemini_fallback_model=(os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite") or None),
         )

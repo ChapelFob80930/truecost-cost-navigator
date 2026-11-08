@@ -2,6 +2,9 @@
 Called from app.py:  render_agents(api, money, codes_ref)   (api/money are app.py's helpers)."""
 from __future__ import annotations
 
+import json
+
+import requests
 import streamlit as st
 
 SARAH_DENIAL = (
@@ -90,6 +93,68 @@ def explain_panel(ex: dict) -> None:
                 st.markdown(f"- {n}")
 
 
+def _react_step_md(st_, step: dict, observation: str | None = None) -> None:
+    """One ReAct round: Thought -> Action -> Observation."""
+    who = "the AI" if step["thought_by"] == "ai" else "our code"
+    st_.markdown(f"**Step {step['n']}**")
+    st_.markdown(f"💭 **Thought** _(written by {who})_: {step['thought']}")
+    ran = "the AI chose this action" if step["run_by"] == "ai" else "our code ran this itself"
+    st_.markdown(f"🛠️ **Action** _({ran})_: {step['action']}")
+    obs = step.get("observation") if observation is None else observation
+    st_.markdown(f"👀 **Observation**: {obs}" if obs else "👀 **Observation**: _working..._")
+
+
+def react_panel(react: list, expanded: bool = True) -> None:
+    """The saved trace, shown after the run."""
+    if not react:
+        return
+    with st.expander("How the assistant thought it through (Thought, Action, Observation)", expanded=expanded):
+        st.caption("Thoughts marked 'the AI' are the AI's own words, shown only after our checks. Observations are always written by "
+                   "our code from the real result of each action.")
+        for step in react:
+            with st.container(border=True):
+                _react_step_md(st, step)
+
+
+def _stream_assistance(api_base: str, body: dict):
+    """Run the assistant and show each Thought / Action / Observation live. Returns the final response, or None."""
+    final = None
+    status = st.status("The assistant is working...", expanded=True)
+    slots: dict = {}
+    try:
+        with requests.post(f"{api_base}/api/v1/assistance/match/stream", json=body, stream=True, timeout=(10, 180)) as r:
+            if r.status_code >= 400:
+                status.update(label="Something went wrong", state="error")
+                st.error(r.text[:300])
+                return None
+            for line in r.iter_lines(decode_unicode=True):
+                if not line or not line.startswith("data: "):
+                    continue
+                ev = json.loads(line[6:])
+                with status:
+                    if ev["type"] == "step_start":
+                        slots[ev["step"]["n"]] = (st.empty(), ev["step"])
+                        box, step = slots[ev["step"]["n"]]
+                        with box.container(border=True):
+                            _react_step_md(st, step)
+                    elif ev["type"] == "step_done" and ev["n"] in slots:
+                        box, step = slots[ev["n"]]
+                        with box.container(border=True):
+                            _react_step_md(st, step, ev["observation"])
+                    elif ev["type"] == "final":
+                        final = ev["response"]
+                    elif ev["type"] == "error":
+                        status.update(label="Something went wrong", state="error")
+                        st.error(ev["detail"])
+                        return None
+    except requests.RequestException as e:
+        status.update(label="Can't reach the server", state="error")
+        st.error(f"Can't reach the TrueCost server. ({e.__class__.__name__})")
+        return None
+    status.update(label="Done. Here is what the assistant found.", state="complete", expanded=False)
+    return final
+
+
 def _meta_footer(meta: dict) -> None:
     if meta.get("error"):
         st.warning(meta["error"])
@@ -102,7 +167,7 @@ def _meta_footer(meta: dict) -> None:
 
 
 # ----------------------------------------------------------------------------- flow 1
-def _assistance(api, case: dict, demo: bool) -> None:
+def _assistance(api, case: dict, demo: bool, api_base: str) -> None:
     st.header("5. Help paying for care")
     st.markdown("Some programs help with medical bills. Tell us about your household and we will look up programs "
                 "**you may want to ask about**. We can't say whether you qualify. Only the program can.")
@@ -119,8 +184,7 @@ def _assistance(api, case: dict, demo: bool) -> None:
         body = {"case": {**_case_from_session(st.session_state),
                          **({"household_size": int(hh), "annual_income": float(inc)} if use_income else {})},
                 "demo_mode": demo}
-        with st.spinner("Looking..."):
-            st.session_state["assist"] = api("POST", "/api/v1/assistance/match", json=body)
+        st.session_state["assist"] = _stream_assistance(api_base, body)
 
     r = st.session_state.get("assist")
     if not r:
@@ -131,7 +195,16 @@ def _assistance(api, case: dict, demo: bool) -> None:
                     f"({f['guideline_year']} guidelines, household of {f['household_size']}).")
         if f["data_status"] != "VERIFIED":
             st.warning("The poverty-level figures used here are still being double-checked by our team.")
-    st.markdown(f"### {r['summary_plain']}")
+    note = r.get("income_note")
+    if note:
+        with st.container(border=True):
+            st.markdown(f"#### {note['headline']}")
+            st.markdown(note["detail"])
+            st.markdown("**Other things you can try to lower what you pay:**")
+            for tip in note["suggestions"]:
+                st.markdown(f"- {tip}")
+    else:
+        st.markdown(f"### {r['summary_plain']}")
     for m in r["matches"]:
         with st.container(border=True):
             st.markdown(f"#### {m['program_name']}")
@@ -148,6 +221,7 @@ def _assistance(api, case: dict, demo: bool) -> None:
             st.markdown(f"[Official source]({m['source_url']})")
     for n in r["not_found"]:
         st.info(n)
+    react_panel((r.get("explanation") or {}).get("react", []), expanded=False)
     explain_panel(r.get("explanation"))
     _meta_footer(r["meta"])
 
@@ -202,11 +276,11 @@ def _appeal(api, case: dict, demo: bool) -> None:
 
 
 # ----------------------------------------------------------------------------- entry point
-def render_agents(api) -> None:
+def render_agents(api, api_base: str) -> None:
     st.divider()
     st.markdown("## Beyond the price")
     st.markdown(f'<div class="caveat">{DISCLAIMER}</div>', unsafe_allow_html=True)
     demo = st.toggle("Demo mode: use pre-recorded answers (works without internet or the AI)", key="demo_mode")
     case = _case_from_session(st.session_state)
-    _assistance(api, case, demo)
+    _assistance(api, case, demo, api_base)
     _appeal(api, case, demo)

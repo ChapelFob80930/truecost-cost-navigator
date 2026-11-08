@@ -45,7 +45,7 @@ class Container:
         if settings.gemini_api_key:
             extractor = FallbackExtractor(
                 GeminiCodeExtractor(repo, settings.gemini_api_key, settings.gemini_model), extractor)
-        agent_model = GeminiChat(settings.gemini_api_key, settings.gemini_model) if settings.gemini_api_key else None
+        agent_model = GeminiChat(settings.gemini_api_key, settings.gemini_model, fallback_model=settings.gemini_fallback_model) if settings.gemini_api_key else None
         transcriber = GeminiTranscriber(settings.gemini_api_key, settings.gemini_model) if settings.gemini_api_key else None
         return cls.from_repo(repo, extractor, agent_model, reader=NoteReader(transcriber), events=events)
 

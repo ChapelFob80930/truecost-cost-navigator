@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from ..config import PROJECT_ROOT
-from .schemas import AssistanceProgram, CriterionCheck
+from .schemas import AssistanceProgram, CriterionCheck, IncomeNote
 
 DEFAULT_PROGRAMS_PATH = PROJECT_ROOT / "backend" / "data" / "assistance_programs.json"
 
@@ -94,6 +94,40 @@ class LookupResult:
     above_threshold: List[str] = field(default_factory=list)   # names excluded because income is over the listed line
     skipped_unverified: List[str] = field(default_factory=list)
     found_nothing: bool = True                                   # True -> say "I couldn't find this"
+
+
+HIGH_INCOME_SUGGESTIONS = [
+    "Ask each hospital for a written cost estimate before you schedule, and compare it with the estimates in this app.",
+    "Call your insurer to confirm the hospital is in your network and to ask what your plan covers before you go.",
+    "Ask the billing office whether they offer a payment plan so you can spread a bill over several months.",
+    "If you have a Health Savings Account or a Flexible Spending Account, ask your employer or plan administrator whether it can pay for these services.",
+    "After a visit, ask for an itemized bill and check it against the services you received.",
+    "Check how much of your deductible and out-of-pocket maximum is left this year, because that changes what you pay.",
+]
+
+
+def income_context(fpl_percent: Optional[float], programs: List[AssistanceProgram], uninsured: Optional[bool]) -> Optional[IncomeNote]:
+    """If income is above the limit of EVERY income-based program that could apply, say so plainly (and what else to try).
+    Returns None when income is unknown, or at or below at least one program's limit."""
+    if fpl_percent is None:
+        return None
+    limits = []
+    for p in programs:
+        ev = evaluate_program(p, fpl_percent, uninsured)
+        if ev.decision == "skipped" or ev.ruled_out_by == "coverage" or p.fpl_threshold_pct is None:
+            continue
+        limits.append(p.fpl_threshold_pct)
+    if not limits or fpl_percent <= max(limits):
+        return None
+    top = max(limits)
+    times = fpl_percent / 100.0
+    times_text = f"{times:,.0f}" if times >= 10 else f"{times:.1f}"
+    return IncomeNote(
+        headline="Your income is well above the poverty level",
+        detail=(f"Your income is about {fpl_percent:,.0f}% of the Federal Poverty Level, roughly {times_text} times the poverty line. "
+                f"The income-based programs in our table go up to {top:g}%, so they are unlikely to apply to you. "
+                "Programs that list no income limit are still shown below. Confirm with each program."),
+        highest_limit_pct=top, times_poverty_line=round(times, 1), suggestions=list(HIGH_INCOME_SUGGESTIONS))
 
 
 def load_programs(path: Optional[Path] = None) -> List[AssistanceProgram]:

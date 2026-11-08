@@ -182,3 +182,36 @@ def test_cached_demo_outputs_include_explanations():
     b = load_cached("sarah_appeal", AppealDraftResponse)
     assert len(a.explanation.steps) >= 5 and a.explanation.program_checks and a.explanation.not_checked
     assert len(b.explanation.steps) == 5
+
+
+# ------------------------------------------------------------------ very high income
+def test_income_above_every_limit_gets_a_plain_note_and_other_options(two_programs):
+    r = run(two_programs, case=Case(household_size=2, annual_income=2_000_000, confirmed_codes=["77066"]))
+    n = r.income_note
+    assert n is not None and n.highest_limit_pct == 200 and n.times_poverty_line > 100
+    assert "well above the poverty level" in n.headline.lower() and "unlikely to apply" in n.detail
+    assert len(n.suggestions) >= 4
+    assert r.summary_plain.startswith(n.detail) and "lower what you pay" in r.summary_plain
+    assert all(c.decision == "ruled_out" for c in r.explanation.program_checks)
+
+
+def test_high_income_note_is_code_written_and_explained(two_programs):
+    r = run(two_programs, case=Case(household_size=2, annual_income=2_000_000))
+    assert r.explanation.react[-1].tool == "write_summary" and "Written by code" in r.explanation.react[-1].observation
+    assert "check_income_level" in [s.tool for s in r.explanation.react]
+    assert any(s.action.startswith("Compared your income with the highest") for s in r.explanation.steps)
+    assert "ai wrote" not in r.explanation.steps[-1].who.lower()
+
+
+def test_no_note_when_income_is_inside_a_limit_or_unknown(two_programs):
+    assert run(two_programs).income_note is None                                             # 150% is inside the 200% limit
+    assert run(two_programs, case=Case(household_size=2, annual_income=21_000)).income_note is None   # ~105%
+    assert run(two_programs, case=Case()).income_note is None                                # no income given
+
+
+def test_high_income_suggestions_pass_every_guard():
+    from app.agents import guards
+    from app.agents.assistance import HIGH_INCOME_SUGGESTIONS
+    for s in HIGH_INCOME_SUGGESTIONS:
+        assert not guards.has_verdict(s) and not guards.has_legal_or_promise(s) and not guards.has_clinical_advice(s), s
+        assert not any(ch.isdigit() for ch in s), s            # no number a model or a table could contradict

@@ -6,8 +6,14 @@ format; the Gemini adapter converts them and keeps the raw model turn (needed fo
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Protocol
+
+from ..retry import is_transient, retry_transient
+
+log = logging.getLogger("truecost.llm")
+REQUEST_TIMEOUT_MS = 15_000     # per Gemini call; typical calls take 1 to 4 seconds
 
 
 @dataclass
@@ -56,12 +62,39 @@ class ChatModel(Protocol):
 class GeminiChat:
     """ChatModel backed by Gemini function calling. temperature 0; automatic function calling OFF (we run the loop)."""
 
-    def __init__(self, api_key: str, model: str, client: Any = None):
-        self.model_name = model
+    def __init__(self, api_key: str, model: str, client: Any = None, fallback_model: Optional[str] = None):
+        self._primary = model
+        self._fallback = fallback_model if fallback_model and fallback_model != model else None
+        self._used: Optional[str] = None             # the model that actually answered last
         if client is None:
             from google import genai
-            client = genai.Client(api_key=api_key)
+            from google.genai import types
+            # a stuck call must fail fast (and be retried) instead of hanging until a proxy cuts the connection
+            client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS))
         self._client = client
+
+    @property
+    def model_name(self) -> str:
+        return self._used or self._primary
+
+    def _generate(self, **kwargs: Any) -> Any:
+        """generate_content with retries for temporary errors (503 "high demand", 429), then once on a backup model."""
+        models = [self._primary] + ([self._fallback] if self._fallback else [])
+        last: Optional[BaseException] = None
+        for i, name in enumerate(models):
+            try:
+                resp = retry_transient(lambda: self._client.models.generate_content(model=name, **kwargs),
+                                       delays=(1.0, 2.5) if i == 0 else (1.0,))
+                self._used = name
+                return resp
+            except Exception as e:  # noqa: BLE001
+                if not is_transient(e):
+                    raise
+                last = e
+                log.warning("model %s unavailable after retries (%s)%s", name, str(e)[:100],
+                            "; trying the backup model" if i + 1 < len(models) else "")
+        assert last is not None
+        raise last
 
     def _contents(self, messages: List[Msg]):
         from google.genai import types
@@ -84,8 +117,8 @@ class GeminiChat:
     def turn(self, system: str, messages: List[Msg], tools: List[ToolDecl]) -> ModelTurn:
         from google.genai import types
         decls = [types.FunctionDeclaration(name=t.name, description=t.description, parameters=t.parameters) for t in tools]
-        resp = self._client.models.generate_content(
-            model=self.model_name, contents=self._contents(messages),
+        resp = self._generate(
+            contents=self._contents(messages),
             config=types.GenerateContentConfig(
                 system_instruction=system, temperature=0,
                 tools=[types.Tool(function_declarations=decls)] if decls else None,
@@ -101,8 +134,8 @@ class GeminiChat:
 
     def final_json(self, system: str, prompt: str, schema: Dict[str, Any]) -> Dict[str, Any]:
         from google.genai import types
-        resp = self._client.models.generate_content(
-            model=self.model_name, contents=prompt,
+        resp = self._generate(
+            contents=prompt,
             config=types.GenerateContentConfig(system_instruction=system, temperature=0,
                                                response_mime_type="application/json", response_schema=schema))
         return json.loads(resp.text)

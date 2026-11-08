@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from ..exceptions import DomainError
+from ..retry import retry_transient
 
 log = logging.getLogger("truecost.notes")
 
@@ -96,11 +97,11 @@ class GeminiTranscriber(Transcriber):
 
     def transcribe(self, data: bytes, mime_type: str) -> str:
         from google.genai import types
-        resp = self._client.models.generate_content(
+        resp = retry_transient(lambda: self._client.models.generate_content(
             model=self._model,
             contents=[types.Part.from_bytes(data=data, mime_type=mime_type), "Transcribe this document."],
             config=types.GenerateContentConfig(system_instruction=TRANSCRIBE_PROMPT, temperature=0),
-        )
+        ))
         return resp.text or ""
 
 

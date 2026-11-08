@@ -29,6 +29,7 @@ class ToolCallRecord(BaseModel):
     ok: bool = True
     error: Optional[str] = None
     duration_ms: int = Field(0, ge=0)
+    thought: Optional[str] = Field(None, description="Text the model wrote just before this call (unfiltered; see Explanation.react for the checked version)")
 
 
 class AgentMeta(BaseModel):
@@ -70,8 +71,25 @@ class ExplainStep(BaseModel):
     source: Optional[str] = None
 
 
+class ReactStep(BaseModel):
+    """One Thought -> Action -> Observation round of the agent (the ReAct pattern).
+    The thought is the AI's own sentence if it passed our checks, otherwise a code-written one; `thought_by` says which.
+    The observation is always written by code from the tool's real output."""
+    n: int = Field(..., ge=1)
+    thought: str
+    thought_by: Literal["ai", "code"]
+    tool: str = Field(..., description="get_case | compute_fpl_percent | lookup_assistance | write_summary")
+    action: str = Field(..., description="The action in plain words")
+    inputs: Dict[str, Any] = Field(default_factory=dict)
+    observation: str = ""
+    ok: bool = True
+    source: Optional[str] = None
+    run_by: Literal["ai", "code"] = Field("ai", description="'ai' = the AI chose to run this tool; 'code' = our code ran it itself")
+
+
 class Explanation(BaseModel):
     steps: List[ExplainStep] = Field(default_factory=list)
+    react: List[ReactStep] = Field(default_factory=list, description="The agent's Thought / Action / Observation trace, in order")
     program_checks: List[ProgramCheck] = Field(default_factory=list)
     not_checked: List[str] = Field(default_factory=list,
                                    description="What the agent did NOT check, or does not know, that could change the answer")
@@ -114,6 +132,16 @@ class BillingRightEntry(BaseModel):
     verified: bool = False
 
 
+class IncomeNote(BaseModel):
+    """Shown when income is above the limit of every income-based program in the table. Written by code from the real
+    numbers: it says income-based help is unlikely to apply (never a verdict) and points to other ways to lower the bill."""
+    headline: str
+    detail: str
+    highest_limit_pct: float = Field(..., description="Highest income limit among the programs checked, as % of the poverty level")
+    times_poverty_line: float = Field(..., description="Income divided by the poverty line for this household size")
+    suggestions: List[str] = Field(default_factory=list)
+
+
 class AssistanceMatchRequest(BaseModel):
     case: Case
     hospitals: Optional[List[str]] = Field(None, description="Limit hospital-program lookups to these")
@@ -140,6 +168,7 @@ class AssistanceMatchResponse(BaseModel):
     not_found: List[str] = Field(default_factory=list,
                                  description="Programs searched with no entry in the table: 'I couldn't find this'")
     summary_plain: str = Field(..., description="About a 6th-grade reading level; no eligibility verdicts")
+    income_note: Optional[IncomeNote] = Field(None, description="Set when income is above every income limit in the table")
     explanation: Explanation = Field(default_factory=Explanation,
                                      description="Why each step was taken and why each program is or isn't listed")
     meta: AgentMeta = Field(default_factory=AgentMeta)

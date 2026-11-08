@@ -63,8 +63,13 @@ export interface MatchedProgram {
 export interface CriterionCheck { criterion: string; your_value: string; program_rule: string; result: "met" | "not_met" | "unknown" | "not_applicable" }
 export interface ProgramCheck { program_name: string; sponsor: string; decision: "may_apply" | "need_more_info" | "ruled_out" | "skipped"; reason: string; criteria: CriterionCheck[]; source_url: string | null }
 export interface ExplainStep { n: number; action: string; why: string; result: string; who: string; source: string | null }
-export interface Explanation { steps: ExplainStep[]; program_checks: ProgramCheck[]; not_checked: string[] }
-export interface AssistanceResponse { fpl: FplResult | null; matches: MatchedProgram[]; not_found: string[]; summary_plain: string; explanation: Explanation; meta: AgentMeta }
+// ReAct trace: Thought -> Action -> Observation. thought_by "ai" = the AI's own sentence (shown only after our checks);
+// "code" = written by our code. The observation is always written by code from the tool's real result.
+export interface ReactStep { n: number; thought: string; thought_by: "ai" | "code"; tool: string; action: string; inputs: Record<string, unknown>; observation: string; ok: boolean; source: string | null; run_by: "ai" | "code" }
+export interface Explanation { steps: ExplainStep[]; react: ReactStep[]; program_checks: ProgramCheck[]; not_checked: string[] }
+// Set when income is above the limit of every income-based program: show it as a prominent card with the suggestions
+export interface IncomeNote { headline: string; detail: string; highest_limit_pct: number; times_poverty_line: number; suggestions: string[] }
+export interface AssistanceResponse { fpl: FplResult | null; matches: MatchedProgram[]; not_found: string[]; summary_plain: string; income_note: IncomeNote | null; explanation: Explanation; meta: AgentMeta }
 
 export interface ParsedDenial { denial_reason: string | null; denied_service_or_code: string | null; date: string | null; claim_or_reference_number: string | null; appeal_deadline_if_stated: string | null; plan_name: string | null; missing_documentation_mentioned: string[] | null }
 export interface CaseFlag { kind: string; message: string }
@@ -82,6 +87,14 @@ export interface UsageStats {
   series: { bucket: string; requests: number; errors: number; avg_ms: number | null }[]; // one point per bucket, zeros included
   last_event_at: string | null;
 }
+
+// Live events from POST /api/v1/assistance/match/stream (Server-Sent Events)
+export type AssistanceStreamEvent =
+  | { type: "start"; mode: "live" | "cached" }
+  | { type: "step_start"; step: ReactStep }                       // a Thought and an Action, observation still empty
+  | { type: "step_done"; n: number; observation: string; ok: boolean } // fills in that step's Observation
+  | { type: "final"; response: AssistanceResponse }
+  | { type: "error"; detail: string };
 
 // ---------- fetch helper ----------
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -103,6 +116,32 @@ const post = <T,>(path: string, body: unknown) => call<T>(path, { method: "POST"
 
 // ---------- calls ----------
 export const api = {
+  // Runs the assistant and calls onEvent for each live event. Resolves with the final response.
+  assistanceMatchStream: async (c: CaseObject, onEvent: (e: AssistanceStreamEvent) => void, demo_mode = false, hospitals?: string[]): Promise<AssistanceResponse> => {
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}/api/v1/assistance/match/stream`, { method: "POST", headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" }, body: JSON.stringify({ case: c, demo_mode, hospitals }) });
+    } catch { throw new Error("Can't reach the TrueCost server. Check your connection, or turn on demo mode."); }
+    if (!res.ok || !res.body) throw new Error(`Request failed (${res.status})`);
+    const reader = res.body.getReader(); const decoder = new TextDecoder();
+    let buf = ""; let final: AssistanceResponse | null = null;
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let i: number;
+      while ((i = buf.indexOf("\n\n")) >= 0) {           // one SSE message per blank line
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 2);
+        if (!line.startsWith("data:")) continue;
+        const ev = JSON.parse(line.slice(5)) as AssistanceStreamEvent;
+        onEvent(ev);
+        if (ev.type === "final") final = ev.response;
+        if (ev.type === "error") throw new Error(ev.detail);
+      }
+    }
+    if (!final) throw new Error("The assistant stopped before finishing. Please try again.");
+    return final;
+  },
   stats: (window_minutes = 60, bucket_minutes = 5) => call<UsageStats>(`/api/v1/stats?window_minutes=${window_minutes}&bucket_minutes=${bucket_minutes}`),
   plans: (insurer: Insurer) => call<string[]>(`/api/v1/plans?insurer=${encodeURIComponent(insurer)}`),
   codes: () => call<{ code: string; code_type: string; description: string; phase: string }[]>("/api/v1/codes"),

@@ -13,6 +13,7 @@ import re
 from typing import Any, List, Optional
 
 from ..repositories.base import PriceRepository
+from ..retry import retry_transient
 from .extraction import CodeExtractor, ExtractedCode, KeywordCodeExtractor
 
 log = logging.getLogger("truecost.extract")
@@ -112,7 +113,7 @@ class GeminiCodeExtractor(CodeExtractor):
         allowed = {c.code.upper(): c for c in self._repo.list_codes()}
         listing = "\n".join(f"{c.code} | {'ICD10' if c.code_type == 'ICD10' else 'CPT'} | {c.description}"
                             for c in allowed.values())
-        resp = self._client.models.generate_content(
+        resp = retry_transient(lambda: self._client.models.generate_content(
             model=self._model,
             contents=f"<note>\n{note}\n</note>",
             config=types.GenerateContentConfig(
@@ -121,7 +122,7 @@ class GeminiCodeExtractor(CodeExtractor):
                 response_mime_type="application/json",
                 response_schema=_SCHEMA,
             ),
-        )
+        ))
         raw = json.loads(resp.text).get("codes", [])
         self.last_raw = raw
         kept = post_filter(raw, note, allowed)

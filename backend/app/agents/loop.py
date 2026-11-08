@@ -52,7 +52,18 @@ def to_jsonable(x: Any) -> Any:
 
 
 def run_tool_loop(model: ChatModel, system: str, user_message: str, tools: Dict[str, ToolSpec],
-                  max_calls: int = MAX_CALLS, max_turns: int = MAX_TURNS) -> LoopResult:
+                  max_calls: int = MAX_CALLS, max_turns: int = MAX_TURNS,
+                  on_event: Optional[Callable[[str, Any], None]] = None) -> LoopResult:
+    """`on_event("action", {step, tool, inputs, thought})` fires just BEFORE a tool runs and
+    `on_event("observation", ToolCallRecord)` just AFTER, so a UI can show the agent's work as it happens.
+    A failing callback is ignored: watching must never break the agent."""
+    def emit(kind: str, payload: Any) -> None:
+        if on_event is not None:
+            try:
+                on_event(kind, payload)
+            except Exception:  # noqa: BLE001
+                log.warning("on_event callback failed", exc_info=True)
+
     res = LoopResult()
     messages: List[Msg] = [Msg(role="user", text=user_message)]
     decls = [t.decl for t in tools.values()]
@@ -70,14 +81,22 @@ def run_tool_loop(model: ChatModel, system: str, user_message: str, tools: Dict[
             return res
 
         results: List[ToolResult] = []
-        for call in turn.calls:
+        for idx, call in enumerate(turn.calls):
             if res.calls_used >= max_calls:
                 res.error = f"Stopped: the agent reached its limit of {max_calls} tool calls."
                 log.warning("tool cap reached")
                 return res
             res.calls_used += 1
-            res.trail.append(_execute(len(res.trail) + 1, call.name, call.args, tools))
+            # The model's stated reason: a `thought` argument on the call (reliable with function calling), or else the
+            # text it wrote before its first call. The argument is removed so tools never receive it.
+            args = dict(call.args or {})
+            arg_thought = args.pop("thought", None)
+            thought = (turn.text if idx == 0 and turn.text else None) or (arg_thought if isinstance(arg_thought, str) else None)
+            emit("action", {"step": len(res.trail) + 1, "tool": call.name, "inputs": to_jsonable(args), "thought": thought})
+            res.trail.append(_execute(len(res.trail) + 1, call.name, args, tools))
             rec = res.trail[-1]
+            rec.thought = thought
+            emit("observation", rec)
             results.append(ToolResult(call.name, rec.output if rec.ok else {"error": rec.error}))
         messages.append(Msg(role="tool", results=results))
 

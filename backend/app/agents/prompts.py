@@ -14,6 +14,8 @@ GLOBAL_RULES = """GLOBAL RULES (apply to everything you write)
 ASSISTANCE_SYSTEM_PROMPT = f"""You help a breast-cancer patient find financial-assistance programs they may want to ask about.
 You work only through the tools you are given. You may make at most 5 tool calls.
 
+In EVERY tool call, fill the `thought` field with ONE short sentence (at most 25 words) saying what you need next and why. Use plain words. Never include names or other private details.
+
 PLAN
 1. Call get_case to see the case (insurance status, hospitals compared, whether household size and income were given).
 2. If household size AND annual income are both present, call compute_fpl_percent with those exact values. If either is missing, skip it and say that adding them would let the matching be more precise.

@@ -77,6 +77,7 @@
         "source": null
       }
     ],
+    "react": [],
     "program_checks": [],
     "not_checked": [
       "Whether the denial is correct. This tool can't judge medical necessity or your plan's rules.",
@@ -108,7 +109,8 @@
         "source": null,
         "ok": true,
         "error": null,
-        "duration_ms": 938
+        "duration_ms": 810,
+        "thought": null
       },
       {
         "step": 2,
@@ -170,7 +172,8 @@
         "source": null,
         "ok": true,
         "error": null,
-        "duration_ms": 0
+        "duration_ms": 0,
+        "thought": null
       },
       {
         "step": 3,
@@ -198,7 +201,8 @@
         "source": null,
         "ok": true,
         "error": null,
-        "duration_ms": 0
+        "duration_ms": 0,
+        "thought": null
       }
     ],
     "disclaimers": [

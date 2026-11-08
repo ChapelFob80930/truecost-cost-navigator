@@ -86,3 +86,35 @@ def test_article_43_44_names_map_to_ppo_and_hmo():
     assert classify("Commercial IHA 44") == {"HMO"}
     assert classify("Article 44 / Article 43 HMO/PPO") == {"HMO", "PPO"}
     assert classify("Choice Plus") == {"Other"}
+
+
+# ------------------------------------------------------------------ diagnosis codes are not steps on the cost timeline
+def test_simulate_ignores_diagnosis_codes_in_the_pathway():
+    from app.domain.models import MedicalCode
+
+    class WithIcd(GapRepo):
+        CODES = FakeRepo.CODES + [MedicalCode("N63.0", "ICD10", "Unspecified lump in unspecified breast", "diagnosis")]
+
+    client = TestClient(create_app(container=Container.from_repo(WithIcd())))
+    body = _body(hospital="Full")
+    body["codes"] = ["N63.0", "77066", "19081"]
+    body["pathway"] = [{"code": "77066", "month": 1}, {"code": "N63.0", "month": 1}, {"code": "19081", "month": 2}]
+    r = client.post("/simulate", json=body)
+    assert r.status_code == 200
+    out = r.json()
+    assert [t["code"] for t in out["timeline"]] == ["77066", "19081"]
+    assert out["unavailable"] == []                 # no fake "not found" for a diagnosis
+
+
+def test_simulate_with_only_diagnosis_steps_is_a_clear_error():
+    from app.domain.models import MedicalCode
+
+    class WithIcd(GapRepo):
+        CODES = FakeRepo.CODES + [MedicalCode("N63.0", "ICD10", "Unspecified lump in unspecified breast", "diagnosis")]
+
+    client = TestClient(create_app(container=Container.from_repo(WithIcd())))
+    body = _body(hospital="Full")
+    body["codes"] = ["N63.0", "77066"]
+    body["pathway"] = [{"code": "N63.0", "month": 1}]
+    r = client.post("/simulate", json=body)
+    assert r.status_code == 422 and "procedure" in r.json()["detail"]

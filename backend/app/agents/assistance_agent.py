@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from ..domain.case import Case
-from .assistance import LookupResult, ProgramMatch, load_programs, lookup_assistance
-from .explain import assistance_explanation
+from .assistance import LookupResult, ProgramMatch, income_context, load_programs, lookup_assistance
+from .explain import ReactRecorder, assistance_explanation, default_thought
 from .fpl import compute_fpl_percent
 from .guards import safe_text
 from .llm import ChatModel, ToolDecl
@@ -17,6 +17,8 @@ from .prompts import ASSISTANCE_SUMMARY_PROMPT, ASSISTANCE_SYSTEM_PROMPT
 from .schemas import AgentMeta, AssistanceMatchResponse, FplResult, MatchedProgram
 from .tools import ToolContext, get_case
 
+THOUGHT_PARAM = {"type": "STRING", "description": "One short sentence (at most 25 words) saying what you need next and why. "
+                 "Plain words. Never include names or other private details."}
 SUMMARY_SCHEMA = {"type": "OBJECT", "properties": {"summary_plain": {"type": "STRING"}}, "required": ["summary_plain"]}
 BASIS_RANK = {"income_at_or_below_listed_threshold": 0, "no_income_threshold_listed": 1, "need_more_information": 2}
 BILLING_QUESTIONS = [
@@ -47,7 +49,7 @@ def _tools(ctx: ToolContext, state: Dict[str, Any]) -> Dict[str, ToolSpec]:
                 "above_listed_threshold": r.above_threshold, "found_nothing": r.found_nothing}
 
     obj = lambda props, req=(): {"type": "OBJECT", "properties": props, "required": list(req)}  # noqa: E731
-    return {
+    specs = {
         "get_case": ToolSpec(ToolDecl("get_case", "Get the patient's case (no private identifiers).", obj({})),
                              lambda: get_case(ctx)),
         "compute_fpl_percent": ToolSpec(
@@ -61,6 +63,11 @@ def _tools(ctx: ToolContext, state: Dict[str, Any]) -> Dict[str, ToolSpec]:
                      obj({"fpl_percent": {"type": "NUMBER"}, "hospital_or_program": {"type": "STRING"}})),
             _lookup, source="backend/data/assistance_programs.json"),
     }
+    for spec in specs.values():      # ReAct: every call carries the agent's own one-sentence reason (stripped before the tool runs)
+        props = spec.decl.parameters.setdefault("properties", {})
+        props["thought"] = THOUGHT_PARAM
+        spec.decl.parameters.setdefault("required", []).append("thought")
+    return specs
 
 
 def _why(m: ProgramMatch, fpl: Optional[FplResult]) -> str:
@@ -86,22 +93,40 @@ def _fallback_summary(matches: List[MatchedProgram], fpl: Optional[FplResult]) -
 
 
 def run_assistance_agent(model: ChatModel, case: Case, hospitals: Optional[List[str]] = None,
-                         fpl_path: Optional[Path] = None, programs_path: Optional[Path] = None) -> AssistanceMatchResponse:
+                         fpl_path: Optional[Path] = None, programs_path: Optional[Path] = None,
+                         on_event: Optional[Callable[[Dict[str, Any]], None]] = None) -> AssistanceMatchResponse:
+    """`on_event` receives the live ReAct trace: {"type": "step_start", "step": {...}} then {"type": "step_done", ...}."""
     ctx = ToolContext(case, fpl_path, programs_path)
     state: Dict[str, Any] = {"fpl": None, "lookups": []}
+    react = ReactRecorder(case, on_event)
     loop = run_tool_loop(model, ASSISTANCE_SYSTEM_PROMPT,
                          "Find assistance programs this patient may want to ask about. Start with get_case.",
-                         _tools(ctx, state))
+                         _tools(ctx, state), on_event=react.on_loop_event)
 
     # code, not the LLM, guarantees the FPL value and the lookup when the model skipped them
     fpl: Optional[FplResult] = state["fpl"]
     if fpl is None and case.has_income_info:
         try:
             fpl = compute_fpl_percent(case.household_size, case.annual_income, fpl_path)
+            react.run_by_code("compute_fpl_percent", {"household_size": case.household_size, "annual_income": case.annual_income},
+                              to_jsonable(fpl), "The AI skipped this, but the case has a household size and income, so I work out the poverty-level percent myself.")
         except Exception as e:  # noqa: BLE001
             loop.error = loop.error or f"Could not compute the poverty-level percent: {e}"
     # always run one complete, unfiltered search in code, so a narrow tool call by the AI can never hide a program
-    state["lookups"].append(lookup_assistance(fpl.fpl_percent if fpl else None, None, coverage_status(case), programs_path))
+    full = lookup_assistance(fpl.fpl_percent if fpl else None, None, coverage_status(case), programs_path)
+    state["lookups"].append(full)
+    react.run_by_code("lookup_assistance", {"fpl_percent": fpl.fpl_percent if fpl else None},
+                      {"matches": [{"program_name": m.program.program_name} for m in full.matches],
+                       "above_listed_threshold": full.above_threshold},
+                      "To be sure no program is missed, I also run a complete search of the whole table myself.")
+
+    # a very high income is above every income limit: say so plainly (code-written, never a verdict) and suggest other options
+    income_note = income_context(fpl.fpl_percent if fpl else None, load_programs(programs_path), coverage_status(case))
+    if income_note and fpl:
+        react.run_by_code("check_income_level", {"fpl_percent": fpl.fpl_percent}, None,
+                          "Your income is high, so I check whether it is above every income limit in the table.",
+                          observation=f"The highest income limit in the table is {income_note.highest_limit_pct:g}% of the poverty level. "
+                                      f"Yours is about {fpl.fpl_percent:,.0f}%, so income-based programs are unlikely to apply.")
 
     found: Dict[str, ProgramMatch] = {}
     for lk in state["lookups"]:
@@ -125,7 +150,9 @@ def run_assistance_agent(model: ChatModel, case: Case, hospitals: Optional[List[
     fallback = _fallback_summary(matches, fpl)
     summary, replaced = fallback, None
     ai_wording_used = False
-    if loop.error is None or matches:
+    if income_note:
+        summary = income_note.detail + " Below are other things you can try to lower what you pay."
+    elif loop.error is None or matches:
         try:
             facts = json.dumps({"fpl": to_jsonable(fpl), "matches": [m.model_dump(mode="json") for m in matches],
                                 "not_found": not_found}, ensure_ascii=False)
@@ -138,7 +165,16 @@ def run_assistance_agent(model: ChatModel, case: Case, hospitals: Optional[List[
     meta = AgentMeta(mode="live", model=model.model_name, tool_calls_used=loop.calls_used, trail=loop.trail, error=loop.error)
     if replaced:
         meta.disclaimers = meta.disclaimers + [f"The AI's wording was replaced with standard wording ({replaced})."]
+    if income_note:
+        verdict = "Written by code from your numbers, so the message is fixed and can't promise or rule out help."
+    elif ai_wording_used and not replaced:
+        verdict = "Written by the AI and checked by code: no promise that you qualify, and no number that isn't in the results."
+    elif ai_wording_used:
+        verdict = f"The AI's wording failed a check ({replaced}), so standard wording is shown instead."
+    else:
+        verdict = "Standard wording used (the AI wasn't available)."
+    react.run_by_code("write_summary", {}, None, default_thought("write_summary", {}), observation=verdict)
     explanation = assistance_explanation(case, fpl, loop.trail, coverage_status(case), programs_path, names, not_found,
-                                         ai_wording_used, replaced)
+                                         ai_wording_used, replaced, react=react.steps, income_note=income_note)
     return AssistanceMatchResponse(fpl=fpl, matches=matches, not_found=not_found, summary_plain=summary,
-                                   explanation=explanation, meta=meta)
+                                   income_note=income_note, explanation=explanation, meta=meta)

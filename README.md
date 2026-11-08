@@ -21,7 +21,7 @@ flowchart LR
     READER["NoteReader: txt, docx, PDF text read locally; scans and photos read by Gemini"]
     EXTRACT["GeminiCodeExtractor: structured JSON plus code-side filters"]
     EST["EstimateService: plan types, labelled estimates, cost calculator"]
-    AG["AgentService: assistance matcher and appeal drafter (tool loop, PHI scrub, guards, explanations)"]
+    AG["AgentService: assistance matcher and appeal drafter (ReAct tool loop streamed live, PHI scrub, guards, explanations)"]
     EVT["EventStore: usage events, fire-and-forget"]
   end
 
@@ -50,7 +50,7 @@ flowchart LR
 | `estimator` | `backend/app/services/estimate_service.py` | Picks a rate per hospital, runs the deductible / coinsurance / out-of-pocket-max math, ranks hospitals, simulates the journey |
 | `extractor` | `backend/app/services/gemini_extractor.py` | Gemini suggests codes; code drops anything off the allowed list or without a word-for-word quote |
 | `reader` | `backend/app/services/note_reader.py` | Turns an uploaded file into note text. File type comes from the file's bytes, not its name |
-| `agents` | `backend/app/agents/`, `backend/app/services/agent_service.py` | Financial Assistance Matcher and Appeal Letter Drafter, with a reasoning trail and code-written explanations |
+| `agents` | `backend/app/agents/`, `backend/app/services/agent_service.py` | Financial Assistance Matcher and Appeal Letter Drafter. The matcher shows its ReAct trace (Thought, Action, Observation) live; reasons are code-written |
 | `events` | `backend/app/events.py` | Records one small event per main API call into a Tiger hypertable; serves live stats |
 
 ### How a price is built
@@ -85,9 +85,10 @@ sequenceDiagram
   UI->>API: POST /estimate
   API->>DB: Prices for those codes
   API-->>UI: Hospitals ranked by out-of-pocket cost and drive time
-  UI->>API: POST /api/v1/assistance/match
-  API->>G: Tool loop (case, poverty level, program lookup)
-  API-->>UI: Programs worth asking about + why, step by step
+  UI->>API: POST /api/v1/assistance/match/stream
+  API->>G: ReAct tool loop (case, poverty level, program lookup)
+  API-->>UI: Live stream: Thought, Action, Observation for each step
+  API-->>UI: Programs worth asking about + why
   API->>DB: Usage event (counts and timings only)
 ```
 
@@ -105,6 +106,7 @@ sequenceDiagram
 | `/api/v1/hospitals` | GET | The seven hospitals with addresses |
 | `/api/v1/plans` | GET | Plan types with published rates for an insurer |
 | `/api/v1/assistance/match` | POST | Financial Assistance Matcher: programs the patient may want to ask about, never a verdict |
+| `/api/v1/assistance/match/stream` | POST | Same as `/api/v1/assistance/match`, streamed as Server-Sent Events: each Thought / Action / Observation as it happens, then the full result |
 | `/api/v1/appeal/draft` | POST | Appeal Letter Drafter: a draft letter with `[PLACEHOLDER]` blanks |
 | `/api/v1/stats` | GET | Live usage as time series from the Tiger hypertable |
 
@@ -118,7 +120,11 @@ Interactive docs: `/docs`.
   cite a law, promise an outcome or give clinical advice.
 - Private details in a denial letter are replaced with placeholders before the AI sees it; real values are restored only locally.
 - The agents can only call allow-listed tools, at most 5 times per request.
-- Every step and every program shows a reason written by code from the real values used (not the AI's own account of itself).
+- If income is above every income limit in the table, the answer is written by code from the numbers ("well above the poverty level, income-based programs are unlikely to apply") with other ways to lower the bill, never a verdict.
+- Temporary Gemini errors (503 "high demand", 429) are retried, then a backup Gemini model is tried, so one busy moment does not drop the AI steps.
+- Every step and every program shows a reason written by code from the real values used. In the live ReAct trace, the AI's own
+  "thought" sentence is shown only if it passes the same checks as all AI text; otherwise a code-written one is shown and marked as such.
+  Observations are always written by code from the tool's real output.
 - Usage events hold only counts, timings and fixed words, never note text or personal details.
 
 ## Data and disclosure

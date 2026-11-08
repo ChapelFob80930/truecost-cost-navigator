@@ -4,12 +4,15 @@ Contract routes live at the root (/extract, /estimate, /simulate). Reference loo
 """
 from __future__ import annotations
 
+import json
+import time
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
+from fastapi.responses import StreamingResponse
 
 from ..container import Container
-from ..events import BUCKETS
+from ..events import BUCKETS, Event, clean_meta
 from ..exceptions import InvalidStatsQuery
 from ..services.note_reader import MAX_BYTES
 from ..domain.models import Payer
@@ -101,6 +104,33 @@ def assistance_match(body: AssistanceMatchRequest, request: Request, c: Containe
     result = c.agents.match(body)
     _meta(request, ai_mode=result.meta.mode, tool_calls=result.meta.tool_calls_used, matches=len(result.matches))
     return result
+
+
+@ref.post("/assistance/match/stream", tags=["agents"])
+def assistance_match_stream(body: AssistanceMatchRequest, c: Container = Depends(get_container)):
+    """Same as /assistance/match, but streamed (Server-Sent Events) so the page can show the agent's ReAct trace live.
+    Each line is `data: {json}`. Event types: start, step_start, step_done, final (the full response), error."""
+    def sse():
+        t0, status, meta = time.perf_counter(), 200, {}
+        try:
+            for ev in c.agents.match_stream(body):
+                if ev["type"] == "_keepalive":
+                    yield ": keep-alive\n\n"     # an SSE comment: clients ignore it, proxies see traffic
+                    continue
+                if ev["type"] == "final":
+                    r = ev["response"]
+                    meta = {"ai_mode": r["meta"]["mode"], "tool_calls": r["meta"]["tool_calls_used"], "matches": len(r["matches"])}
+                elif ev["type"] == "error":
+                    status = 500
+                yield "data: " + json.dumps(ev, ensure_ascii=False) + "\n\n"
+        finally:
+            try:
+                c.events.record(Event(endpoint="assistance_stream", status=status,
+                                      latency_ms=int((time.perf_counter() - t0) * 1000), meta=clean_meta(meta)))
+            except Exception:  # noqa: BLE001 - logging must never break a stream
+                pass
+    return StreamingResponse(sse(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @ref.post("/appeal/draft", response_model=AppealDraftResponse, tags=["agents"])

@@ -94,6 +94,10 @@ class EstimateService:
                 known.update({c.code: c for c in self._repo.get_codes([step.code])})
             if step.code not in known:
                 raise UnknownCodeError([step.code])
+        # a diagnosis (ICD-10) says why care is happening; it has no price, so it is not a step on the cost timeline
+        pathway = [s for s in pathway if known[s.code].code_type != "ICD10"]
+        if not pathway:
+            raise NoBillableCodesError()
         if any(s.code not in req.codes for s in pathway):
             index = self._index([s.code for s in pathway] + list(req.codes), profile)
 

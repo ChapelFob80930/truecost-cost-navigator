@@ -111,10 +111,39 @@ def _load_sarah():
 
 
 st.button("Try the demo: Sarah's note", on_click=_load_sarah)
-up = st.file_uploader("...or upload a text file (.txt)", type=["txt"])
-if up is not None and ss.get("_up_name") != up.name:
-    ss["note"] = up.read().decode("utf-8", errors="ignore")
-    ss["_up_name"], ss["found"] = up.name, None
+
+
+def _read_file(name: str, data: bytes, mime: str) -> None:
+    """Send an uploaded or photographed note to the server. It comes back as text to check, plus suggested codes."""
+    with st.spinner("Reading your note..."):
+        r = api("POST", "/extract/file", files={"file": (name, data, mime)})
+    ss["note"] = r["note_text"]
+    ss["found"] = {"codes": r["codes"], "extractor": r["extractor"]}
+    ss["run"] += 1
+    ss.pop("est", None)
+    ss.pop("sims", None)
+    ss["_read_info"] = r
+
+
+up = st.file_uploader("...or upload a file: PDF, photo, Word or text (up to 10 MB)",
+                      type=["pdf", "png", "jpg", "jpeg", "webp", "docx", "txt"])
+if up is not None and ss.get("_up_sig") != (up.name, up.size):
+    ss["_up_sig"] = (up.name, up.size)
+    _read_file(up.name, up.getvalue(), up.type or "application/octet-stream")
+with st.expander("...or scan it with your camera"):
+    st.caption("Hold the page flat, in good light, and fill the frame. The photo is read by AI to find the text. "
+               "It is not stored, and names and ID numbers are not kept.")
+    shot = st.camera_input("Take a photo of the note")
+    if shot is not None and ss.get("_scan_sig") != hash(shot.getvalue()):
+        ss["_scan_sig"] = hash(shot.getvalue())
+        _read_file("scan.jpg", shot.getvalue(), "image/jpeg")
+info = ss.get("_read_info")
+if info:
+    how = {"gemini-ocr": "read from the picture by AI", "pdf-text": "taken from the PDF text", "docx": "taken from the Word file",
+           "text": "read from the text file"}.get(info["read_method"], info["read_method"])
+    st.info(f"We {how}. **Please check the text below for mistakes**, fix anything wrong, then press the button to find codes again.")
+    if info.get("truncated"):
+        st.warning("Your note was long, so we only used the first part.")
 st.text_area("Paste or edit the note here", key="note", height=190)
 
 if st.button("Find the billing codes in my note", type="primary", disabled=len(ss["note"].strip()) < 3):

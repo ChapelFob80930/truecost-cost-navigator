@@ -51,6 +51,7 @@ flowchart LR
 | `extractor` | `backend/app/services/gemini_extractor.py` | Gemini suggests codes; code drops anything off the allowed list or without a word-for-word quote |
 | `reader` | `backend/app/services/note_reader.py` | Turns an uploaded file into note text. File type comes from the file's bytes, not its name |
 | `agents` | `backend/app/agents/`, `backend/app/services/agent_service.py` | Financial Assistance Matcher and Appeal Letter Drafter, with a reasoning trail and code-written explanations |
+| `mailer` | `backend/app/services/mailer.py` | "Connect my Gmail" (Google sign-in, `gmail.compose` permission only), saving the letter as a draft in the patient's own Gmail, and sending it only after they approve. The recipient is typed by the user, a letter with blanks left is refused, and the AI never touches it. Off unless `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set |
 | `events` | `backend/app/events.py` | Records one small event per main API call into a Tiger hypertable; serves live stats |
 
 ### How a price is built
@@ -106,6 +107,8 @@ sequenceDiagram
 | `/api/v1/plans` | GET | Plan types with published rates for an insurer |
 | `/api/v1/assistance/match` | POST | Financial Assistance Matcher: programs the patient may want to ask about, never a verdict |
 | `/api/v1/appeal/draft` | POST | Appeal Letter Drafter: a draft letter with `[PLACEHOLDER]` blanks |
+| `/api/v1/appeal/send` | POST | Email the approved letter from the patient's connected Gmail (needs `approved: true`, a typed recipient, no blanks left) |
+| `/api/v1/gmail/connect`, `/status`, `/disconnect` | POST / GET / POST | Per-patient Gmail connection; the browser holds a private session id, tokens stay on the server |
 | `/api/v1/stats` | GET | Live usage as time series from the Tiger hypertable |
 
 Interactive docs: `/docs`.

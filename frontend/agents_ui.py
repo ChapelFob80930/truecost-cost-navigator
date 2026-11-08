@@ -2,7 +2,11 @@
 Called from app.py:  render_agents(api, money, codes_ref)   (api/money are app.py's helpers)."""
 from __future__ import annotations
 
+import re
+
 import streamlit as st
+
+from compose_link import compose_url
 
 SARAH_DENIAL = (
     "Dear Sarah Demo, claim number DEMO-0001: we denied CPT 19083 (ultrasound-guided breast biopsy) on 03/04/2026 "
@@ -152,6 +156,96 @@ def _assistance(api, case: dict, demo: bool) -> None:
     _meta_footer(r["meta"])
 
 
+# ----------------------------------------------------------------------------- send by email (after approval)
+_BLANK = re.compile(r"\[[A-Z][A-Z0-9 _/'-]{1,40}\]")
+
+
+def _gmail_header() -> dict:
+    sid = st.session_state.get("gmail_sid")
+    return {"X-Gmail-Session": sid} if sid else {}
+
+
+def _gmail_connect_ui(api) -> str | None:
+    """Shows the connect / disconnect controls. Returns the connected email, or None."""
+    status = api("GET", "/api/v1/gmail/status", headers=_gmail_header())
+    if not status["available"]:
+        st.info("Emailing isn't set up on this server. Download the draft above and send it yourself.")
+        return None
+    if status["connected"]:
+        st.success(f"Gmail connected: {status['email']}. Drafts are saved in, and sent from, your own account.")
+        if st.button("Disconnect my Gmail"):
+            api("POST", "/api/v1/gmail/disconnect", headers=_gmail_header())
+            st.session_state.pop("gmail_sid", None)
+            st.session_state.pop("gmail_url", None)
+            st.rerun()
+        return status["email"]
+    st.markdown("To save this letter as a draft in Gmail, connect **your own Gmail**. We ask Google only for permission "
+                "to create drafts and send an email you approve here. We can't read your inbox, and you can disconnect any time.")
+    if st.button("Connect my Gmail"):
+        res = api("POST", "/api/v1/gmail/connect")
+        st.session_state["gmail_sid"], st.session_state["gmail_url"] = res["session_id"], res["auth_url"]
+    if st.session_state.get("gmail_url"):
+        st.link_button("1. Sign in with Google (opens a new tab)", st.session_state["gmail_url"])
+        if st.button("2. I finished connecting: check"):
+            st.rerun()
+    return None
+
+
+def _compose_panel(text: str, parsed: dict) -> None:
+    """Open a prefilled Gmail compose window. We never see the patient's Gmail; they review and press Send themselves."""
+    st.subheader("Send it from your own Gmail (optional)")
+    st.caption("We open Gmail with this letter filled in. Nothing is sent until you press Send in Gmail. "
+               "Check where your plan accepts appeals first; many use a portal, fax or mail.")
+    blanks = sorted(set(_BLANK.findall(text)))
+    if blanks:
+        st.warning("Fill in these blanks in the draft above first: " + ", ".join(blanks))
+    to = st.text_input("Send to (type the address from your plan's letter or website)", key="send_to")
+    subject = st.text_input("Subject", key="send_subject", value="Appeal" + (
+        f" - claim {parsed['claim_or_reference_number']}" if parsed.get("claim_or_reference_number") else ""))
+    url, included = compose_url(to, subject, text)
+    st.link_button("Open in Gmail", url, disabled=bool(blanks))
+    if not included:
+        st.info("This letter is too long to fill in automatically. Gmail will open with the address and subject. "
+                "Copy the letter below (the copy icon) and paste it in.")
+    with st.expander("Copy the letter"):
+        st.code(text, language=None)
+
+
+def _send_panel(api, text: str, parsed: dict, demo: bool) -> None:
+    """Draft here -> connect the patient's own Gmail -> save a Gmail draft -> send only after they approve."""
+    st.subheader("Put it in your Gmail (optional)")
+    st.caption("Your draft stays here until you connect Gmail. Then we save it as a draft in your own Gmail. "
+               "Nothing is sent until you approve. Check where your plan accepts appeals first; many use a portal, fax or mail.")
+    if demo or not api("GET", "/api/v1/gmail/status")["available"]:
+        _compose_panel(text, parsed)          # default: no sign-in, you send it yourself from Gmail
+        return
+    me = _gmail_connect_ui(api)
+    if me is None:
+        return
+    to = st.text_input("Send to (type the address from your plan's letter or website)", key="send_to")
+    default_subject = "Appeal" + (f" - claim {parsed['claim_or_reference_number']}" if parsed.get("claim_or_reference_number") else "")
+    subject = st.text_input("Subject", value=default_subject, key="send_subject")
+
+    if st.button("Create draft in my Gmail"):
+        res = api("POST", "/api/v1/gmail/draft", headers=_gmail_header(), json={"to": to, "subject": subject, "body": text})
+        st.session_state["gmail_draft_id"] = res["draft_id"]
+    draft_id = st.session_state.get("gmail_draft_id")
+    if not draft_id:
+        return
+    st.success(f"Saved as a draft in {me}. [Open your Gmail drafts](https://mail.google.com/mail/u/0/#drafts)")
+    st.caption("If you change the letter above, we update the Gmail draft with the final text when you send.")
+
+    blanks = sorted(set(_BLANK.findall(text)))
+    if blanks:
+        st.warning("Fill in these blanks in the draft above to enable sending: " + ", ".join(blanks))
+    approved = st.checkbox(f"I reviewed this letter and approve sending it from {me}.", key="send_ok")
+    if st.button("Approve and send", disabled=bool(blanks) or not approved or "@" not in to):
+        res = api("POST", "/api/v1/appeal/send", headers=_gmail_header(),
+                  json={"to": to, "subject": subject, "body": text, "approved": True, "draft_id": draft_id})
+        st.session_state.pop("gmail_draft_id", None)
+        st.success(f"Sent from {res['sent_from']} to {res['to']}.")
+
+
 # ----------------------------------------------------------------------------- flow 2
 def _appeal(api, case: dict, demo: bool) -> None:
     st.header("6. Got a denial letter?")
@@ -194,6 +288,7 @@ def _appeal(api, case: dict, demo: bool) -> None:
         st.info("Fill in these blanks before sending: " + ", ".join(r["letter"]["placeholders"]))
     text = st.text_area("Your draft", value=r["letter"]["body"], height=380, key="letter_text")
     st.download_button("Download the draft (.txt)", data=text, file_name="appeal_draft.txt")
+    _send_panel(api, text, p, demo)
     st.subheader("Next steps")
     for s in r["next_steps"]:
         st.markdown(f"- {s}")

@@ -233,6 +233,35 @@ class LetterDraft(BaseModel):
         return self
 
 
+class AppealSendRequest(BaseModel):
+    """Sent only after the user approves the draft in the UI. `body` is the letter as the user edited it."""
+    to: str = Field(..., max_length=254, description="Typed by the user; never chosen by the AI")
+    subject: str = Field(..., max_length=200)
+    body: str = Field(..., max_length=20000)
+    approved: bool = Field(False, description="Must be true: the user clicked approve")
+    draft_id: Optional[str] = Field(None, max_length=200, description="The Gmail draft made earlier; it is updated, then sent")
+
+
+class GmailDraftRequest(BaseModel):
+    """Save the letter as a draft in the patient's own Gmail. Nothing is sent."""
+    to: str = Field("", max_length=254, description="Optional; typed by the user")
+    subject: str = Field(..., max_length=200)
+    body: str = Field(..., max_length=20000)
+
+
+class GmailDraftResponse(BaseModel):
+    draft_id: str
+    saved_in: str
+    open_url: str = "https://mail.google.com/mail/u/0/#drafts"
+
+
+class AppealSendResponse(BaseModel):
+    sent: bool
+    message_id: str
+    to: str
+    sent_from: str
+
+
 class AppealDraftResponse(BaseModel):
     denial_summary_plain: str
     parsed: ParsedDenial

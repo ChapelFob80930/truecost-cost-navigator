@@ -23,6 +23,7 @@ flowchart LR
     EST["EstimateService: plan types, labelled estimates, cost calculator"]
     AG["AgentService: assistance matcher and appeal drafter (ReAct tool loop streamed live, PHI scrub, guards, explanations)"]
     EVT["EventStore: usage events, fire-and-forget"]
+    MAIL["GmailService: save or send the appeal letter from the patient's own Gmail (off unless configured)"]
   end
 
   API --> READER
@@ -31,6 +32,8 @@ flowchart LR
   API --> EST
   API --> AG
   API --> EVT
+  API --> MAIL
+  MAIL --> GMAIL[("Google Gmail API: the patient's own account")]
 
   EXTRACT --> GEM[("Gemini API")]
   READER --> GEM
@@ -51,6 +54,7 @@ flowchart LR
 | `extractor` | `backend/app/services/gemini_extractor.py` | Gemini suggests codes; code drops anything off the allowed list or without a word-for-word quote |
 | `reader` | `backend/app/services/note_reader.py` | Turns an uploaded file into note text. File type comes from the file's bytes, not its name |
 | `agents` | `backend/app/agents/`, `backend/app/services/agent_service.py` | Financial Assistance Matcher and Appeal Letter Drafter. The matcher shows its ReAct trace (Thought, Action, Observation) live; reasons are code-written |
+| `mailer` | `backend/app/services/mailer.py` | "Connect my Gmail" (Google sign-in, `gmail.compose` permission only), saving the letter as a draft in the patient's own Gmail, and sending it only after they approve. The recipient is typed by the user, a letter with blanks left is refused, and the AI never touches it. Off unless `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set |
 | `events` | `backend/app/events.py` | Records one small event per main API call into a Tiger hypertable; serves live stats |
 
 ### How a price is built
@@ -108,6 +112,12 @@ sequenceDiagram
 | `/api/v1/assistance/match` | POST | Financial Assistance Matcher: programs the patient may want to ask about, never a verdict |
 | `/api/v1/assistance/match/stream` | POST | Same as `/api/v1/assistance/match`, streamed as Server-Sent Events: each Thought / Action / Observation as it happens, then the full result |
 | `/api/v1/appeal/draft` | POST | Appeal Letter Drafter: a draft letter with `[PLACEHOLDER]` blanks |
+| `/api/v1/appeal/send` | POST | Email the approved letter from the patient's connected Gmail (needs `approved: true`, a typed recipient, no blanks left) |
+| `/api/v1/gmail/connect` | POST | Start "Connect my Gmail": returns the Google consent URL and a private session id for the browser to keep |
+| `/api/v1/gmail/callback` | GET | Where Google redirects after sign-in; shows a plain "you can close this tab" page, no token reaches the browser |
+| `/api/v1/gmail/status` | GET | Whether this browser session is connected to Gmail |
+| `/api/v1/gmail/draft` | POST | Save the letter as a draft in the patient's own Gmail; sends nothing, blanks allowed |
+| `/api/v1/gmail/disconnect` | POST | Disconnect Gmail and forget the tokens |
 | `/api/v1/stats` | GET | Live usage as time series from the Tiger hypertable |
 
 Interactive docs: `/docs`.

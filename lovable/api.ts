@@ -168,3 +168,15 @@ export const api = {
   appealDraft: (c: CaseObject, denial_text: string, opts: { letter_type?: "internal_appeal" | "documentation_request"; patient_facts?: Record<string, string>; demo_mode?: boolean } = {}) =>
     post<AppealResponse>("/api/v1/appeal/draft", { case: c, denial_text, letter_type: opts.letter_type ?? "internal_appeal", patient_facts: opts.patient_facts ?? {}, demo_mode: opts.demo_mode ?? false }),
 };
+
+// ---------- send the appeal letter from the patient's OWN Gmail (no sign-in, no stored credentials) ----------
+// Opens Gmail's compose window with the letter filled in. Nothing is sent until the patient presses Send in Gmail.
+// If the letter is too long for a link, only To + Subject are filled in and `bodyIncluded` is false: show the letter in a
+// copy box and tell the patient to paste it. Keep in step with frontend/compose_link.py.
+export function gmailComposeUrl(to: string, subject: string, body: string): { url: string; bodyIncluded: boolean } {
+  const MAX_URL = 1800;
+  const enc = (s: string) => encodeURIComponent(s ?? "");
+  const base = `https://mail.google.com/mail/?view=cm&fs=1&to=${enc((to ?? "").trim()).replace(/%40/g, "@")}&su=${enc(subject)}`;
+  const full = `${base}&body=${enc(body)}`;
+  return full.length <= MAX_URL ? { url: full, bodyIncluded: true } : { url: base, bodyIncluded: false };
+}

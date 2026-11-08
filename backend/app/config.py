@@ -28,6 +28,9 @@ class Settings:
     database_url: Optional[str] = None   # Postgres / Tiger Data; if unset the app uses the SQLite file
     gemini_model: str = "gemini-3.1-flash-lite"
     gemini_fallback_model: Optional[str] = "gemini-3.5-flash-lite"   # used only if the main model keeps failing; empty = off
+    google_client_id: Optional[str] = None       # with the secret, turns on "Connect my Gmail"
+    google_client_secret: Optional[str] = None
+    google_redirect_uri: str = "http://127.0.0.1:8000/api/v1/gmail/callback"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -39,4 +42,7 @@ class Settings:
             database_url=os.getenv("DATABASE_URL") or None,
             gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"),
             gemini_fallback_model=(os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite") or None),
+            google_client_id=os.getenv("GOOGLE_CLIENT_ID") or None,
+            google_client_secret=os.getenv("GOOGLE_CLIENT_SECRET") or None,
+            google_redirect_uri=os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:8000/api/v1/gmail/callback"),
         )

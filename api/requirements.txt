@@ -1,5 +1,5 @@
 fastapi
-pydantic>=2
+pydantic>=2.14.3
 httpx
 google-genai
 psycopg[binary,pool]

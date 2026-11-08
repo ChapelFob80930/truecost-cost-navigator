@@ -4,11 +4,13 @@ Contract routes live at the root (/extract, /estimate, /simulate). Reference loo
 """
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 
 from ..container import Container
+from ..events import BUCKETS
+from ..exceptions import InvalidStatsQuery
 from ..services.note_reader import MAX_BYTES
 from ..domain.models import Payer
 from ..domain.plan_types import available_types
@@ -23,6 +25,11 @@ ref = APIRouter(prefix="/api/v1")
 
 def get_container(request: Request) -> Container:
     return request.app.state.container
+
+
+def _meta(request: Request, **counts: Any) -> None:
+    """Hand a few counts to the usage log (the middleware whitelists them). Never pass note text or personal data."""
+    getattr(request.state, "meta", {}).update(counts)
 
 
 @ref.get("/codes", response_model=List[CodeOut], tags=["reference"])
@@ -43,9 +50,10 @@ def list_plans(insurer: Payer, c: Container = Depends(get_container)):
 
 
 @router.post("/extract", response_model=ExtractResponse, tags=["ai"])
-def extract_codes(body: ExtractRequest, c: Container = Depends(get_container)):
+def extract_codes(body: ExtractRequest, request: Request, c: Container = Depends(get_container)):
     """Suggest billing codes from a doctor's note. The patient must confirm them."""
     found = c.extractor.extract(body.note)
+    _meta(request, codes_found=len(found))
     return ExtractResponse(
         extractor=c.extractor.name,
         codes=[ExtractedCodeOut(code=x.code, type=x.code_type, description=x.description,
@@ -53,13 +61,15 @@ def extract_codes(body: ExtractRequest, c: Container = Depends(get_container)):
 
 
 @router.post("/extract/file", response_model=ExtractFileResponse, tags=["ai"])
-def extract_codes_from_file(file: UploadFile = File(..., description="PDF, PNG, JPEG, WEBP, DOCX or TXT, up to 10 MB"),
+def extract_codes_from_file(request: Request,
+                            file: UploadFile = File(..., description="PDF, PNG, JPEG, WEBP, DOCX or TXT, up to 10 MB"),
                             c: Container = Depends(get_container)):
     """Same as /extract, but the doctor's note is an uploaded file (typed, scanned or photographed).
     The text read from the file comes back too, so the patient can check it before confirming codes."""
     data = file.file.read(MAX_BYTES + 1)   # never read more than the cap
     note = c.reader.read(data)
     found = c.extractor.extract(note.text)
+    _meta(request, codes_found=len(found), read_method=note.method, file_type=note.file_type)
     return ExtractFileResponse(
         extractor=c.extractor.name, note_text=note.text, read_method=note.method, file_type=note.file_type,
         truncated=note.truncated,
@@ -68,24 +78,44 @@ def extract_codes_from_file(file: UploadFile = File(..., description="PDF, PNG, 
 
 
 @router.post("/estimate", response_model=EstimateResponse, tags=["estimate"])
-def estimate(body: EstimateRequest, c: Container = Depends(get_container)):
+def estimate(body: EstimateRequest, request: Request, c: Container = Depends(get_container)):
     """Rank hospitals by the patient's estimated out-of-pocket cost."""
-    return c.estimator.estimate(body)
+    result = c.estimator.estimate(body)
+    _meta(request, insurer=body.insurance.insurer.value, plan_type=body.insurance.plan, codes_requested=len(body.codes),
+          hospitals_comparable=sum(1 for r in result.results if r.complete),
+          hospitals_with_estimates=sum(1 for r in result.results if r.has_estimates))
+    return result
 
 
 @router.post("/simulate", response_model=SimulateResponse, tags=["estimate"])
-def simulate(body: SimulateRequest, c: Container = Depends(get_container)):
+def simulate(body: SimulateRequest, request: Request, c: Container = Depends(get_container)):
     """Month-by-month out-of-pocket cost across the care journey at one hospital."""
-    return c.estimator.simulate(body)
+    result = c.estimator.simulate(body)
+    _meta(request, insurer=body.insurance.insurer.value, plan_type=body.insurance.plan, codes_requested=len(body.codes))
+    return result
 
 
 @ref.post("/assistance/match", response_model=AssistanceMatchResponse, tags=["agents"])
-def assistance_match(body: AssistanceMatchRequest, c: Container = Depends(get_container)):
+def assistance_match(body: AssistanceMatchRequest, request: Request, c: Container = Depends(get_container)):
     """Financial Assistance Matcher: programs the patient MAY want to ask about (never an eligibility verdict)."""
-    return c.agents.match(body)
+    result = c.agents.match(body)
+    _meta(request, ai_mode=result.meta.mode, tool_calls=result.meta.tool_calls_used, matches=len(result.matches))
+    return result
 
 
 @ref.post("/appeal/draft", response_model=AppealDraftResponse, tags=["agents"])
-def appeal_draft(body: AppealDraftRequest, c: Container = Depends(get_container)):
+def appeal_draft(body: AppealDraftRequest, request: Request, c: Container = Depends(get_container)):
     """Appeal Letter Drafter: a DRAFT letter with [PLACEHOLDER] fields, for review with the care team."""
-    return c.agents.draft(body)
+    result = c.agents.draft(body)
+    _meta(request, ai_mode=result.meta.mode, tool_calls=result.meta.tool_calls_used)
+    return result
+
+
+@ref.get("/stats", tags=["meta"])
+def usage_stats(window_minutes: int = Query(60, ge=5, le=1440), bucket_minutes: int = Query(5),
+                c: Container = Depends(get_container)) -> Dict[str, Any]:
+    """Live usage as time-series data (counts, latency, errors per time bucket). From Tiger Data's hypertable when
+    the app runs on Postgres. Holds no note text and no personal data."""
+    if bucket_minutes not in BUCKETS or window_minutes // bucket_minutes > 300:
+        raise InvalidStatsQuery(BUCKETS)
+    return c.events.stats(window_minutes, bucket_minutes)

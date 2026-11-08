@@ -301,3 +301,30 @@ if ss["found"] is not None:
 
 # ----------------------------------------------------------------------------- assistant flows
 render_agents(api)
+
+
+# ----------------------------------------------------------------------------- live usage (time-series from Tiger Data)
+def live_usage() -> None:
+    st.divider()
+    with st.expander("Live usage (time-series data)"):
+        try:
+            s = requests.get(f"{API}/api/v1/stats", params={"window_minutes": 60, "bucket_minutes": 5}, timeout=15).json()
+        except Exception:  # noqa: BLE001 - this panel is optional
+            st.caption("Usage stats are not available right now.")
+            return
+        src = ("Tiger Data hypertable, queried with `time_bucket`" if s["time_series"]
+               else "in memory (resets when the server restarts)")
+        st.caption(f"Last hour, in 5-minute buckets. Stored in: {src}. Only counts and timings are stored, never note text or personal details.")
+        t = s["totals"]
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Requests", t["requests"])
+        c2.metric("Errors", t["errors"])
+        c3.metric("Median speed", f"{t['p50_ms']} ms" if t["p50_ms"] is not None else "-")
+        c4.metric("Slowest 5%", f"{t['p95_ms']} ms" if t["p95_ms"] is not None else "-")
+        st.bar_chart({"requests": [p["requests"] for p in s["series"]]}, height=160)
+        if s["by_endpoint"]:
+            st.table({"Endpoint": [r["endpoint"] for r in s["by_endpoint"]], "Requests": [r["requests"] for r in s["by_endpoint"]],
+                      "Average ms": [r["avg_ms"] for r in s["by_endpoint"]]})
+
+
+live_usage()

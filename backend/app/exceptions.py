@@ -36,3 +36,10 @@ class NoBillableCodesError(DomainError):
 
     def __init__(self):
         super().__init__("Only diagnosis (ICD-10) codes were given; add at least one procedure (CPT) code to price.")
+
+
+class InvalidStatsQuery(DomainError):
+    status_code = 422
+
+    def __init__(self, buckets):
+        super().__init__(f"bucket_minutes must be one of {', '.join(map(str, buckets))}, and the window can hold at most 300 buckets.")

@@ -74,6 +74,15 @@ export interface AppealResponse {
   documentation_checklist: string[]; letter: { letter_type: string; body: string; placeholders: string[] }; next_steps: string[]; explanation: Explanation; meta: AgentMeta;
 }
 
+// ---------- live usage (time-series from Tiger Data) ----------
+export interface UsageStats {
+  backend: "tiger" | "memory"; time_series: boolean; window_minutes: number; bucket_minutes: number;
+  totals: { requests: number; errors: number; p50_ms: number | null; p95_ms: number | null; ai_live: number; ai_cached: number };
+  by_endpoint: { endpoint: string; requests: number; avg_ms: number }[];
+  series: { bucket: string; requests: number; errors: number; avg_ms: number | null }[]; // one point per bucket, zeros included
+  last_event_at: string | null;
+}
+
 // ---------- fetch helper ----------
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -94,6 +103,7 @@ const post = <T,>(path: string, body: unknown) => call<T>(path, { method: "POST"
 
 // ---------- calls ----------
 export const api = {
+  stats: (window_minutes = 60, bucket_minutes = 5) => call<UsageStats>(`/api/v1/stats?window_minutes=${window_minutes}&bucket_minutes=${bucket_minutes}`),
   plans: (insurer: Insurer) => call<string[]>(`/api/v1/plans?insurer=${encodeURIComponent(insurer)}`),
   codes: () => call<{ code: string; code_type: string; description: string; phase: string }[]>("/api/v1/codes"),
   extract: (note: string) => post<ExtractResponse>("/extract", { note }),

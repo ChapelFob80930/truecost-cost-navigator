@@ -33,3 +33,17 @@ CREATE TABLE IF NOT EXISTS prices (
 
 CREATE INDEX IF NOT EXISTS idx_prices_code_payer ON prices (code, payer);
 CREATE INDEX IF NOT EXISTS idx_prices_hospital   ON prices (hospital);
+
+-- ---- usage events (time-series) ------------------------------------------------------------------
+-- Created automatically on startup by app/events.py (PostgresEventStore). Shown here for reference.
+-- One row per call to a main endpoint. No note text and no personal data: only counts and fixed words.
+CREATE TABLE IF NOT EXISTS app_events (
+  ts          timestamptz NOT NULL DEFAULT now(),
+  endpoint    text        NOT NULL,
+  status      integer     NOT NULL,
+  latency_ms  integer     NOT NULL,
+  meta        jsonb       NOT NULL DEFAULT '{}'::jsonb
+);
+SELECT create_hypertable('app_events', 'ts', if_not_exists => TRUE, migrate_data => TRUE);   -- TimescaleDB on Tiger Data
+CREATE INDEX IF NOT EXISTS ix_app_events_endpoint_ts ON app_events (endpoint, ts DESC);
+SELECT add_retention_policy('app_events', INTERVAL '30 days', if_not_exists => TRUE);

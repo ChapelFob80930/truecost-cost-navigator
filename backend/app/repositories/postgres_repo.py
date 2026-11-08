@@ -33,6 +33,11 @@ class PostgresPriceRepository(PriceRepository):
                     "keepalives": 1, "keepalives_idle": 30, "keepalives_interval": 10, "keepalives_count": 3})
         self._pool.wait(timeout=20)          # fail fast with a clear error if the database is unreachable
 
+    @property
+    def pool(self):
+        """The connection pool, shared with the event store (time-series usage log)."""
+        return self._pool
+
     def close(self) -> None:
         self._pool.close()
 

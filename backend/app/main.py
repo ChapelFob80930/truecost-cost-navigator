@@ -1,6 +1,8 @@
 """FastAPI entry point.  Run:  cd backend && ../.venv/bin/uvicorn app.main:create_app --factory --reload"""
 from __future__ import annotations
 
+import logging
+import time
 from typing import Optional
 
 from fastapi import FastAPI, Request
@@ -10,7 +12,10 @@ from fastapi.responses import JSONResponse
 from .api.routes import ref, router
 from .config import Settings
 from .container import Container
+from .events import TRACKED, Event, clean_meta
 from .exceptions import DomainError
+
+log = logging.getLogger("truecost.app")
 
 
 def create_app(container: Optional[Container] = None, settings: Optional[Settings] = None) -> FastAPI:
@@ -29,6 +34,26 @@ def create_app(container: Optional[Container] = None, settings: Optional[Setting
         if request.headers.get("access-control-request-private-network") == "true":
             response.headers["Access-Control-Allow-Private-Network"] = "true"
         return response
+
+    @app.middleware("http")
+    async def track_events(request: Request, call_next):
+        """Time-series usage log: one small event per call to the main endpoints (no note text, no personal data)."""
+        name = TRACKED.get(request.url.path)
+        if request.method != "POST" or name is None:
+            return await call_next(request)
+        request.state.meta = {}                       # routes add counts here; clean_meta whitelists them
+        t0, status = time.perf_counter(), 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            return response
+        finally:
+            try:
+                app.state.container.events.record(
+                    Event(endpoint=name, status=status, latency_ms=int((time.perf_counter() - t0) * 1000),
+                          meta=clean_meta(getattr(request.state, "meta", {}))))
+            except Exception:  # noqa: BLE001 - logging must never break a request
+                log.warning("could not record an event", exc_info=True)
 
     @app.exception_handler(DomainError)
     async def domain_error_handler(_: Request, exc: DomainError):

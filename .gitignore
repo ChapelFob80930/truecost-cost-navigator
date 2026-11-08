@@ -17,3 +17,6 @@ __pycache__/
 node_modules/
 *.zip
 *_log.txt
+
+# Vercel link (holds your org and project ids)
+.vercel/

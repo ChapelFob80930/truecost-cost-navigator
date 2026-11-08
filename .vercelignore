@@ -1,0 +1,21 @@
+# Keep the upload small and never send secrets or raw data to Vercel.
+.env
+.env.*
+!.env.example
+_srcdata/
+/data/
+*.zip
+*_log.txt
+.git/
+.github/
+.pytest_cache/
+__pycache__/
+.venv/
+node_modules/
+notebooks/
+eval/
+frontend/
+lovable/
+deploy/
+docs/
+backend/tests/

@@ -36,7 +36,7 @@ class Container:
         events: EventStore | None = None
         if settings.database_url:
             from .repositories.postgres_repo import PostgresPriceRepository   # lazy: SQLite-only runs don't need psycopg
-            repo: PriceRepository = PostgresPriceRepository(settings.database_url)
+            repo: PriceRepository = PostgresPriceRepository(settings.database_url, max_size=settings.db_pool_max)
             try:
                 events = PostgresEventStore(repo.pool)
             except Exception:  # noqa: BLE001 - usage logging is optional; the app must still start

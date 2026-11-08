@@ -1,0 +1,109 @@
+name: Deploy to Vercel
+
+# Pull request  -> CI, then a PREVIEW deployment, a smoke test, and the preview URL posted on the pull request.
+# Push to main  -> CI, then a PRODUCTION deployment and a smoke test (with the AI guardrail checks).
+# Nothing is deployed unless CI passes. If the Vercel secrets are not set yet, the deploy job is skipped with a notice.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: ${{ github.event_name == 'pull_request' && 'Preview deploy' || 'Production deploy' }}
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      IS_PROD: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - name: Check that Vercel is configured
+        id: cfg
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Vercel is not configured::Add VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as repository secrets (see docs/DEPLOY_VERCEL.md). Skipping the deploy."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.configured == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.configured == 'true'
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        if: steps.cfg.outputs.configured == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install the Vercel CLI
+        if: steps.cfg.outputs.configured == 'true'
+        run: npm install --global vercel@latest
+
+      - name: Pull the project settings and environment variables from Vercel
+        if: steps.cfg.outputs.configured == 'true'
+        run: |
+          ENV_NAME=$([ "$IS_PROD" = "true" ] && echo production || echo preview)
+          vercel pull --yes --environment="$ENV_NAME" --token="$VERCEL_TOKEN"
+
+      - name: Build
+        if: steps.cfg.outputs.configured == 'true'
+        run: |
+          PROD_FLAG=$([ "$IS_PROD" = "true" ] && echo "--prod" || echo "")
+          vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        id: deploy
+        if: steps.cfg.outputs.configured == 'true'
+        run: |
+          PROD_FLAG=$([ "$IS_PROD" = "true" ] && echo "--prod" || echo "")
+          URL=$(vercel deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "### Deployed: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke test the deployment
+        if: steps.cfg.outputs.configured == 'true'
+        run: |
+          LIVE_FLAG=$([ "$IS_PROD" = "true" ] && echo "--live" || echo "")
+          python scripts/smoke_test.py "${{ steps.deploy.outputs.url }}" $LIVE_FLAG | tee smoke.txt
+          { echo '```'; cat smoke.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment the preview URL on the pull request
+        if: steps.cfg.outputs.configured == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        with:
+          script: |
+            const marker = '<!-- vercel-preview -->';
+            const body = `${marker}\n**Preview deployed and smoke-tested:** ${process.env.PREVIEW_URL}\n\nUse it as the API address to try this change. It is protected by Vercel login unless you use the bypass secret.`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: context.issue.number });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+            }

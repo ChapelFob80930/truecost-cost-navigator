@@ -1,0 +1,7 @@
+fastapi
+pydantic>=2
+httpx
+google-genai
+psycopg[binary,pool]
+pypdf
+python-multipart

@@ -16,7 +16,7 @@ flowchart LR
   end
   UI -->|"note text, file or camera photo"| API
 
-  subgraph Backend["FastAPI backend"]
+  subgraph Backend["FastAPI backend (a Vercel serverless function in production; local or tunnel for development)"]
     API["Routes (thin HTTP layer)"]
     READER["NoteReader: txt, docx, PDF text read locally; scans and photos read by Gemini"]
     EXTRACT["GeminiCodeExtractor: structured JSON plus code-side filters"]
@@ -179,7 +179,14 @@ cd frontend && TRUECOST_API=http://127.0.0.1:8010 streamlit run app.py         #
 
 Settings go in `.env` (copy `.env.example`): `GEMINI_API_KEY`, and optionally `DATABASE_URL` + `PGPASSWORD` for Tiger Data.
 Without `DATABASE_URL` the app uses `truecost.db`. On Windows, `start_backend.bat` starts the API and `start_tunnel.bat` adds a public tunnel.
-Deploying on a server: [deploy/DEPLOY.md](deploy/DEPLOY.md). The Lovable client is `lovable/api.ts`.
+Deploying on Vercel, with CI/CD: [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md). Deploying on your own server instead: [deploy/DEPLOY.md](deploy/DEPLOY.md). The Lovable client is `lovable/api.ts`.
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/`) run on every push and pull request. **CI** runs the tests (including the README architecture
+check), a secret scan, and a clean-install check of the Vercel bundle. **Deploy** then publishes to Vercel: a preview for each pull
+request, production for `main`, and a smoke test (`scripts/smoke_test.py`) after each deployment. Nothing deploys unless CI passes, and
+the deploy job skips itself until the three Vercel secrets are set. Setup and limits: [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md).
 
 Rebuild the database from the raw price files (about 17 GB, not in this repo):
 `TRUECOST_DATA=/path/to/data python scripts/build_db.py`, then `python scripts/migrate_to_postgres.py` to load Tiger Data.
@@ -194,8 +201,12 @@ backend/tests/       unit and API tests
 frontend/            Streamlit app
 lovable/             typed API client and prompts for the Lovable web app
 eval/                extraction and agent evals, results, judge Q&A
-scripts/             build_db.py, migrate_to_postgres.py, record_demo.py, validators
-deploy/              Vultr install scripts (systemd + Caddy)
+scripts/             build_db.py, migrate_to_postgres.py, record_demo.py, validators, smoke_test.py, secret_scan.py, check_vercel_bundle.py
+api/                 Vercel entry point (index.py) and the dependencies Vercel installs
+vercel.json          Vercel function settings (time limit, which files ship)
+.github/             CI and deploy workflows, Dependabot
+docs/                deployment guide for Vercel
+deploy/              Vultr install scripts (systemd + Caddy), the alternative to Vercel
 truecost.db          SQLite copy of the price data
 ```
 

@@ -38,6 +38,10 @@ class LineOut(BaseModel):
     description: Optional[str] = None
     rate: float
     patient_pays: float
+    deductible: float = Field(0.0, description="Part of patient_pays that goes toward the deductible")
+    coinsurance: float = Field(0.0, description="Part of patient_pays that is coinsurance")
+    insurer_pays: float = Field(0.0, description="What the insurer pays: rate minus patient_pays")
+    hit_oop_max: bool = Field(False, description="True if the out-of-pocket maximum limited what the patient pays on this line")
     rule: str
     price_source: str = Field("published", description="'published' (hospital's own rate for this insurer) or 'estimated'")
     estimate_note: Optional[str] = Field(None, description="Why and how the estimate was made (only when price_source='estimated')")

@@ -25,6 +25,11 @@ export interface ExtractFileResponse extends ExtractResponse {
 
 export interface EstimateLine {
   code: string; description: string | null; rate: number; patient_pays: number; rule: string;
+  // the split of patient_pays, worked out by our calculator from the patient's own plan numbers (no outside data needed):
+  deductible: number;     // part of patient_pays that counts toward the deductible
+  coinsurance: number;    // part that is coinsurance
+  insurer_pays: number;   // rate minus patient_pays
+  hit_oop_max: boolean;   // the out-of-pocket maximum limited this line
   price_source: "published" | "estimated"; // "estimated" = hospital did not publish this insurer's rate; borrowed from other insurers
   estimate_note: string | null;            // show next to estimated lines
 }

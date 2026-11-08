@@ -238,7 +238,9 @@ class EstimateService:
             patient_oop=float(sum((c.patient_pays for c in costs), Decimal("0"))),
             drive_minutes=self._geo.drive_minutes(origin, h.lat, h.lng),
             lines=[LineOut(code=p.code, description=p.description, rate=float(c.allowed),
-                           patient_pays=float(c.patient_pays), rule=p.rule,
+                           patient_pays=float(c.patient_pays), deductible=float(c.deductible_paid),
+                           coinsurance=float(c.coinsurance_paid), insurer_pays=float(c.insurer_pays), hit_oop_max=bool(c.hit_oop_max),
+                           rule=p.rule,
                            price_source="estimated" if p.estimated else "published", estimate_note=p.note)
                    for p, c in zip(priced, costs)],
             unavailable=unavailable)

@@ -118,3 +118,36 @@ def test_simulate_with_only_diagnosis_steps_is_a_clear_error():
     body["pathway"] = [{"code": "N63.0", "month": 1}]
     r = client.post("/simulate", json=body)
     assert r.status_code == 422 and "procedure" in r.json()["detail"]
+
+
+# ------------------------------------------------------------------ each line shows where the money goes
+def _lines(deductible, coinsurance, oop_max):
+    body = _body()
+    body["insurance"] = {**body["insurance"], "plan": "PPO", "insurer": "Independent Health", "deductible_remaining": deductible,
+                         "coinsurance_pct": coinsurance, "oop_max_remaining": oop_max}
+    r = _by_name(_client().post("/estimate", json=body))["Full"]
+    return {line["code"]: line for line in r["lines"]}
+
+
+def test_each_line_splits_into_deductible_coinsurance_and_insurer_share():
+    lines = _lines(deductible=250, coinsurance=20, oop_max=100000)
+    a, b = lines["77066"], lines["19081"]                      # allowed 200 then 1000
+    assert (a["deductible"], a["coinsurance"], a["patient_pays"], a["insurer_pays"]) == (200.0, 0.0, 200.0, 0.0)    # all of it goes to the deductible
+    assert (b["deductible"], b["coinsurance"], b["patient_pays"], b["insurer_pays"]) == (50.0, 190.0, 240.0, 760.0)  # 50 left, then 20% of 950
+    for line in (a, b):
+        assert round(line["deductible"] + line["coinsurance"], 2) == line["patient_pays"]
+        assert round(line["patient_pays"] + line["insurer_pays"], 2) == line["rate"]
+        assert line["hit_oop_max"] is False
+
+
+def test_the_out_of_pocket_maximum_is_flagged_and_the_insurer_covers_the_rest():
+    lines = _lines(deductible=250, coinsurance=20, oop_max=100)
+    a, b = lines["77066"], lines["19081"]
+    assert a["patient_pays"] == 100.0 and a["hit_oop_max"] is True and a["insurer_pays"] == 100.0
+    assert b["patient_pays"] == 0.0 and b["hit_oop_max"] is True and b["insurer_pays"] == 1000.0
+    assert round(a["deductible"] + a["coinsurance"], 2) == a["patient_pays"]
+
+
+def test_no_deductible_left_means_only_coinsurance():
+    a = _lines(deductible=0, coinsurance=30, oop_max=100000)["77066"]
+    assert (a["deductible"], a["coinsurance"], a["patient_pays"], a["insurer_pays"]) == (0.0, 60.0, 60.0, 140.0)

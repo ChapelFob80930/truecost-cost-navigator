@@ -1,0 +1,19 @@
+# secrets - never commit
+.env
+.env.*
+!.env.example
+
+# raw hospital price files (17 GB) - get them from the data zip
+_srcdata/
+data/
+
+# local runtime / generated
+.venv/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+.claude/
+node_modules/
+*.zip
+*_log.txt

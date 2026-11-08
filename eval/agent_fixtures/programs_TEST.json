@@ -1,0 +1,14 @@
+{
+  "_note": "FAKE rows used ONLY by eval/run_agent_eval.py. Names, thresholds and sources are invented test fixtures, not real programs.",
+  "programs": [
+    {"program_name": "FAKE TEST Hospital Charity Care", "sponsor": "Roswell Park", "type": "hospital charity care",
+     "eligibility_summary": "fake", "fpl_threshold_pct": 200, "applies_to": "both", "how_to_apply": "Call the financial counselor (fake)",
+     "contact": "555-0100", "source_url": "https://example.test/fake-charity", "retrieved_date": "2026-11-07", "verified": true},
+    {"program_name": "FAKE TEST State Cancer Screening Program", "sponsor": "Test State", "type": "public program",
+     "eligibility_summary": "fake", "fpl_threshold_pct": 300, "applies_to": "uninsured", "how_to_apply": "Apply online (fake)",
+     "contact": "555-0101", "source_url": "https://example.test/fake-state", "retrieved_date": "2026-11-07", "verified": true},
+    {"program_name": "FAKE TEST Insured Patient Navigator", "sponsor": "Test Nonprofit", "type": "nonprofit",
+     "eligibility_summary": "fake", "fpl_threshold_pct": null, "applies_to": "insured", "how_to_apply": "Call to enroll (fake)",
+     "contact": "555-0102", "source_url": "https://example.test/fake-navigator", "retrieved_date": "2026-11-07", "verified": true}
+  ]
+}

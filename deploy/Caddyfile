@@ -1,0 +1,9 @@
+# Caddy gets and renews the https certificate automatically once DNS points at this server.
+# setup.sh replaces __DOMAIN__ with your domain.
+__DOMAIN__ {
+	encode gzip
+	request_body {
+		max_size 1MB
+	}
+	reverse_proxy 127.0.0.1:8010
+}

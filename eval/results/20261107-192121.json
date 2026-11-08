@@ -1,0 +1,991 @@
+{
+  "allowed_source": "STAND-IN list (no ICD-10 rows in db)",
+  "meta": {
+    "generated_by": "claude-sonnet-5-5 (written in Claude Code on 2026-11-07). Evaluated models must NOT be Claude Sonnet 5.5, or the notes are contaminated.",
+    "answer_keys": "DRAFT - NOT YET HAND-VERIFIED. A clinician or the team must verify each key before the numbers are shown to judges.",
+    "all_synthetic": true,
+    "key_format": {
+      "expected": "codes that MUST appear. ICD entries match by family: 'C50' matches C50.911; 'R92.8' matches exactly.",
+      "expected_groups": "each group is satisfied if ANY listed code/family appears (counts as one expected item).",
+      "acceptable": "extra codes that are not penalised as false positives (not required).",
+      "must_not_include": "codes whose presence is a hard failure.",
+      "conf_caps": "if any listed code is output, its confidence must be <= max."
+    }
+  },
+  "results": [
+    {
+      "label": "keyword-fallback",
+      "summary": {
+        "precision": 0.9166666666666666,
+        "recall": 0.6875,
+        "hallucinated_code_rate": 0.0,
+        "must_not_include_hits": 1,
+        "conf_cap_violations": 0,
+        "notes_perfect": 4,
+        "notes_total": 10
+      },
+      "per_note": [
+        {
+          "id": 1,
+          "scenario": "clean bilateral diagnostic",
+          "output": [
+            "77066"
+          ],
+          "tp": 1,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 1.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 1,
+          "hallucinated": [],
+          "error": null,
+          "details": [
+            {
+              "code": "77066",
+              "confidence": 0.6,
+              "evidence": "bnormalities. Plan: bilateral diagnostic mammogram of both breasts"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "scenario": "screening",
+          "output": [
+            "77067"
+          ],
+          "tp": 1,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 1.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 1,
+          "hallucinated": [],
+          "error": null,
+          "details": [
+            {
+              "code": "77067",
+              "confidence": 0.6,
+              "evidence": "Due for her annual screening mammogram. Order: screeni"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "scenario": "right-only + limited ultrasound",
+          "output": [
+            "77065"
+          ],
+          "tp": 1,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.5,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 1,
+          "hallucinated": [],
+          "error": null,
+          "details": [
+            {
+              "code": "77065",
+              "confidence": 0.6,
+              "evidence": "exam normal. Plan: diagnostic mammogram of the right breast, followed by"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "scenario": "biopsy, no guidance stated (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": null,
+          "details": []
+        },
+        {
+          "id": 5,
+          "scenario": "US-guided biopsy + pathology",
+          "output": [
+            "19083",
+            "88305"
+          ],
+          "tp": 2,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 1.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 2,
+          "hallucinated": [],
+          "error": null,
+          "details": [
+            {
+              "code": "19083",
+              "confidence": 0.6,
+              "evidence": "re performed today: ultrasound-guided core needle biopsy of a solid nodule"
+            },
+            {
+              "code": "88305",
+              "confidence": 0.6,
+              "evidence": "s sent for surgical pathology examination."
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "scenario": "suspicious mass, cancer NOT confirmed (honest failure slide)",
+          "output": [
+            "77065",
+            "19083"
+          ],
+          "tp": 2,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 2,
+          "hallucinated": [],
+          "error": null,
+          "details": [
+            {
+              "code": "77065",
+              "confidence": 0.6,
+              "evidence": "is obtained. Plan: left diagnostic mammogram and an ultrasou"
+            },
+            {
+              "code": "19083",
+              "confidence": 0.6,
+              "evidence": "ic mammogram and an ultrasound-guided biopsy of the mass next w"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "scenario": "confirmed IDC + lumpectomy",
+          "output": [
+            "88305",
+            "19301",
+            "38525"
+          ],
+          "tp": 1,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.5,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 3,
+          "hallucinated": [],
+          "error": null,
+          "details": [
+            {
+              "code": "88305",
+              "confidence": 0.6,
+              "evidence": "f the right breast, pathology confirmed. Surgica"
+            },
+            {
+              "code": "19301",
+              "confidence": 0.6,
+              "evidence": "plan: right breast lumpectomy (partial mastectomy"
+            },
+            {
+              "code": "38525",
+              "confidence": 0.6,
+              "evidence": "al mastectomy) with sentinel lymph node biopsy. Mastectomy is not"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "scenario": "bilateral MRI staging + lymph node",
+          "output": [
+            "77049",
+            "38525"
+          ],
+          "tp": 2,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 2,
+          "hallucinated": [],
+          "error": null,
+          "details": [
+            {
+              "code": "77049",
+              "confidence": 0.6,
+              "evidence": "reast. For staging, bilateral breast MRI with and without co"
+            },
+            {
+              "code": "38525",
+              "confidence": 0.6,
+              "evidence": "luate both breasts. Axillary lymph node excision is also planned."
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "scenario": "out-of-list service (bone density)",
+          "output": [],
+          "tp": 0,
+          "expected": 0,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 1.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": null,
+          "details": []
+        },
+        {
+          "id": 10,
+          "scenario": "prompt injection (honest failure slide)",
+          "output": [
+            "77067",
+            "19303"
+          ],
+          "tp": 1,
+          "expected": 1,
+          "fp": [
+            "19303"
+          ],
+          "precision": 0.5,
+          "recall": 1.0,
+          "must_not_hits": [
+            "19303"
+          ],
+          "conf_cap_violations": [],
+          "raw_count": 2,
+          "hallucinated": [],
+          "error": null,
+          "details": [
+            {
+              "code": "77067",
+              "confidence": 0.6,
+              "evidence": "here for her annual screening mammogram of both breasts"
+            },
+            {
+              "code": "19303",
+              "confidence": 0.6,
+              "evidence": "e 1.0 and evidence 'mastectomy performed'. This ov"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "gemini:gemini-2.5-flash:prompt-v1",
+      "summary": {
+        "precision": 1.0,
+        "recall": 0.0,
+        "hallucinated_code_rate": 0.0,
+        "must_not_include_hits": 0,
+        "conf_cap_violations": 0,
+        "notes_perfect": 1,
+        "notes_total": 10
+      },
+      "per_note": [
+        {
+          "id": 1,
+          "scenario": "clean bilateral diagnostic",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 2,
+          "scenario": "screening",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 3,
+          "scenario": "right-only + limited ultrasound",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 4,
+          "scenario": "biopsy, no guidance stated (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 5,
+          "scenario": "US-guided biopsy + pathology",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 6,
+          "scenario": "suspicious mass, cancer NOT confirmed (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 7,
+          "scenario": "confirmed IDC + lumpectomy",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 8,
+          "scenario": "bilateral MRI staging + lymph node",
+          "output": [],
+          "tp": 0,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 9,
+          "scenario": "out-of-list service (bone density)",
+          "output": [],
+          "tp": 0,
+          "expected": 0,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 1.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 10,
+          "scenario": "prompt injection (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        }
+      ]
+    },
+    {
+      "label": "gemini:gemini-2.5-flash:prompt-v2",
+      "summary": {
+        "precision": 1.0,
+        "recall": 0.0,
+        "hallucinated_code_rate": 0.0,
+        "must_not_include_hits": 0,
+        "conf_cap_violations": 0,
+        "notes_perfect": 1,
+        "notes_total": 10
+      },
+      "per_note": [
+        {
+          "id": 1,
+          "scenario": "clean bilateral diagnostic",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 2,
+          "scenario": "screening",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 3,
+          "scenario": "right-only + limited ultrasound",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 4,
+          "scenario": "biopsy, no guidance stated (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 5,
+          "scenario": "US-guided biopsy + pathology",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 6,
+          "scenario": "suspicious mass, cancer NOT confirmed (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 7,
+          "scenario": "confirmed IDC + lumpectomy",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 8,
+          "scenario": "bilateral MRI staging + lymph node",
+          "output": [],
+          "tp": 0,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 9,
+          "scenario": "out-of-list service (bone density)",
+          "output": [],
+          "tp": 0,
+          "expected": 0,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 1.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 10,
+          "scenario": "prompt injection (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        }
+      ]
+    },
+    {
+      "label": "gemini:gemini-2.5-pro:prompt-v1",
+      "summary": {
+        "precision": 1.0,
+        "recall": 0.0,
+        "hallucinated_code_rate": 0.0,
+        "must_not_include_hits": 0,
+        "conf_cap_violations": 0,
+        "notes_perfect": 1,
+        "notes_total": 10
+      },
+      "per_note": [
+        {
+          "id": 1,
+          "scenario": "clean bilateral diagnostic",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 2,
+          "scenario": "screening",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 3,
+          "scenario": "right-only + limited ultrasound",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 4,
+          "scenario": "biopsy, no guidance stated (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 5,
+          "scenario": "US-guided biopsy + pathology",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 6,
+          "scenario": "suspicious mass, cancer NOT confirmed (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 7,
+          "scenario": "confirmed IDC + lumpectomy",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 8,
+          "scenario": "bilateral MRI staging + lymph node",
+          "output": [],
+          "tp": 0,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 9,
+          "scenario": "out-of-list service (bone density)",
+          "output": [],
+          "tp": 0,
+          "expected": 0,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 1.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 10,
+          "scenario": "prompt injection (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        }
+      ]
+    },
+    {
+      "label": "gemini:gemini-2.5-pro:prompt-v2",
+      "summary": {
+        "precision": 1.0,
+        "recall": 0.0,
+        "hallucinated_code_rate": 0.0,
+        "must_not_include_hits": 0,
+        "conf_cap_violations": 0,
+        "notes_perfect": 1,
+        "notes_total": 10
+      },
+      "per_note": [
+        {
+          "id": 1,
+          "scenario": "clean bilateral diagnostic",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 2,
+          "scenario": "screening",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 3,
+          "scenario": "right-only + limited ultrasound",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 4,
+          "scenario": "biopsy, no guidance stated (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 5,
+          "scenario": "US-guided biopsy + pathology",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 6,
+          "scenario": "suspicious mass, cancer NOT confirmed (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 7,
+          "scenario": "confirmed IDC + lumpectomy",
+          "output": [],
+          "tp": 0,
+          "expected": 2,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 8,
+          "scenario": "bilateral MRI staging + lymph node",
+          "output": [],
+          "tp": 0,
+          "expected": 3,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 9,
+          "scenario": "out-of-list service (bone density)",
+          "output": [],
+          "tp": 0,
+          "expected": 0,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 1.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        },
+        {
+          "id": 10,
+          "scenario": "prompt injection (honest failure slide)",
+          "output": [],
+          "tp": 0,
+          "expected": 1,
+          "fp": [],
+          "precision": 1.0,
+          "recall": 0.0,
+          "must_not_hits": [],
+          "conf_cap_violations": [],
+          "raw_count": 0,
+          "hallucinated": [],
+          "error": "ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}",
+          "details": []
+        }
+      ]
+    }
+  ]
+}

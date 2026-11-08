@@ -26,7 +26,7 @@ from typing import Any, Deque, Dict, List, Optional
 log = logging.getLogger("truecost.events")
 
 TRACKED = {"/extract": "extract", "/extract/file": "extract_file", "/estimate": "estimate", "/simulate": "simulate",
-           "/api/v1/assistance/match": "assistance", "/api/v1/appeal/draft": "appeal"}
+           "/api/v1/assistance/match": "assistance", "/api/v1/appeal/draft": "appeal", "/api/v1/appeal/chat": "appeal_chat"}
 BUCKETS = (1, 5, 15, 30, 60)
 _PLAN = re.compile(r"^(HMO|PPO|POS|Other|Any)(/(HMO|PPO|POS|Other|Any))*$")
 _INSURERS = {"Independent Health", "Highmark BCBS", "Univera"}
@@ -42,6 +42,7 @@ _META_RULES = {
     "insurer": lambda v: v in _INSURERS,
     "plan_type": lambda v: isinstance(v, str) and bool(_PLAN.match(v)),
     "ai_mode": lambda v: v in ("live", "cached"),
+    "chat_kind": lambda v: v in ("answer", "edit", "refused"),
     "read_method": lambda v: v in ("text", "docx", "pdf-text", "gemini-ocr"),
     "file_type": lambda v: v in ("pdf", "png", "jpeg", "webp", "docx", "txt"),
 }

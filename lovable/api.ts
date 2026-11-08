@@ -96,6 +96,18 @@ export type AssistanceStreamEvent =
   | { type: "final"; response: AssistanceResponse }
   | { type: "error"; detail: string };
 
+// ---------- appeal chat: a guarded back-and-forth about ONE pasted denial letter and its draft ----------
+export interface LetterDraft { letter_type: "internal_appeal" | "documentation_request"; body: string; placeholders: string[] }
+export interface ChatTurn { role: "user" | "assistant"; content: string } // keep the last 20 and send them back each turn; nothing is stored on the server
+export interface AppealChatResponse {
+  kind: "answer" | "edit" | "refused";   // "edit": `letter` holds the revised draft, show it. "refused": off-topic, legal or medical advice, or unsafe
+  reply: string;                          // show as the assistant's message (refusals are written by our code)
+  letter: LetterDraft | null;             // only when the draft changed
+  changes: string[];                      // plain-language summary of what changed
+  refused_because: "off_topic" | "legal_advice" | "medical_advice" | "unsafe" | null;
+  meta: AgentMeta;
+}
+
 // ---------- fetch helper ----------
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -142,6 +154,9 @@ export const api = {
     if (!final) throw new Error("The assistant stopped before finishing. Please try again.");
     return final;
   },
+  // One chat turn. Send the pasted denial letter, the CURRENT draft (including the patient's own edits) and the history.
+  appealChat: (c: CaseObject, denial_text: string, letter: LetterDraft, history: ChatTurn[], message: string) =>
+    post<AppealChatResponse>("/api/v1/appeal/chat", { case: c, denial_text, letter, history: history.slice(-20), message }),
   stats: (window_minutes = 60, bucket_minutes = 5) => call<UsageStats>(`/api/v1/stats?window_minutes=${window_minutes}&bucket_minutes=${bucket_minutes}`),
   plans: (insurer: Insurer) => call<string[]>(`/api/v1/plans?insurer=${encodeURIComponent(insurer)}`),
   codes: () => call<{ code: string; code_type: string; description: string; phase: string }[]>("/api/v1/codes"),

@@ -262,6 +262,29 @@ class AppealSendResponse(BaseModel):
     sent_from: str
 
 
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(..., max_length=2000)
+
+
+class AppealChatRequest(BaseModel):
+    """One turn of the appeal chat. The page keeps the conversation and sends it back each time (nothing is stored here)."""
+    case: Case
+    denial_text: str = Field(..., min_length=3, max_length=20000, description="The pasted denial letter")
+    letter: LetterDraft = Field(..., description="The current draft, including any edits the patient made")
+    history: List[ChatTurn] = Field(default_factory=list, max_length=20)
+    message: str = Field(..., min_length=1, max_length=1000)
+
+
+class AppealChatResponse(BaseModel):
+    kind: Literal["answer", "edit", "refused"]
+    reply: str
+    letter: Optional[LetterDraft] = Field(None, description="Present only when the letter changed")
+    changes: List[str] = Field(default_factory=list, description="Plain-language summary of what changed, written by code from a diff")
+    refused_because: Optional[Literal["off_topic", "legal_advice", "medical_advice", "unsafe"]] = None
+    meta: AgentMeta = Field(default_factory=AgentMeta)
+
+
 class AppealDraftResponse(BaseModel):
     denial_summary_plain: str
     parsed: ParsedDenial

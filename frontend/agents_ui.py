@@ -320,7 +320,51 @@ def _send_panel(api, text: str, parsed: dict, demo: bool) -> None:
 
 
 # ----------------------------------------------------------------------------- flow 2
-def _appeal(api, case: dict, demo: bool) -> None:
+def _send_chat_message(api_base: str, case: dict, letter_type: str, base_placeholders: list) -> None:
+    """Runs as the chat box's on_submit callback, so it may change the draft box before the page redraws."""
+    ss = st.session_state
+    msg = (ss.get("appeal_chat_in") or "").strip()
+    if not msg:
+        return
+    msgs = ss.setdefault("appeal_msgs", [])
+    body_now = ss.get("letter_text", "")
+    payload = {"case": case, "denial_text": ss.get("denial", ""),
+               "letter": {"letter_type": letter_type, "body": body_now, "placeholders": [p for p in base_placeholders if p in body_now]},
+               "history": [{"role": m["role"], "content": m["content"][:2000]} for m in msgs[-20:]], "message": msg[:1000]}
+    msgs.append({"role": "user", "content": msg})
+    try:
+        resp = requests.post(f"{api_base}/api/v1/appeal/chat", json=payload, timeout=120)
+        data = resp.json()
+    except Exception:  # noqa: BLE001
+        msgs.append({"role": "assistant", "content": "I can't reach the assistant right now. Please try again.", "kind": "error"})
+        return
+    if resp.status_code >= 400:
+        msgs.append({"role": "assistant", "content": str(data.get("detail", "Something went wrong. Please try again.")), "kind": "error"})
+        return
+    msgs.append({"role": "assistant", "content": data["reply"], "kind": data["kind"], "changes": data.get("changes", [])})
+    if data.get("letter"):
+        ss["letter_text"] = data["letter"]["body"]          # the draft box updates with the revised letter
+
+
+def _appeal_chat(api_base: str, case: dict, r: dict, demo: bool) -> None:
+    st.subheader("Chat about your letter")
+    st.caption("Ask what your denial letter says, or tell me what to change in the draft above. I only talk about this letter: "
+               "no legal or medical advice, and I can't promise how the appeal will go. Private details are hidden from the AI.")
+    for m in st.session_state.get("appeal_msgs", []):
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
+            if m.get("changes"):
+                st.caption("Draft updated: " + "; ".join(m["changes"]))
+            if m.get("kind") == "refused":
+                st.caption("That's outside what I can help with here.")
+    if demo:
+        st.info("The chat needs the live assistant. Turn off demo mode to use it.")
+        return
+    st.chat_input("Ask about the denial, or tell me what to change in the letter...", key="appeal_chat_in",
+                  on_submit=_send_chat_message, args=(api_base, case, r["letter"]["letter_type"], r["letter"]["placeholders"]))
+
+
+def _appeal(api, case: dict, demo: bool, api_base: str) -> None:
     st.header("6. Got a denial letter?")
     st.markdown("Paste the letter (or describe what happened). We will explain it in plain English and draft an appeal "
                 "letter for you to review with your care team. **Private details like your name and member ID are hidden "
@@ -339,6 +383,8 @@ def _appeal(api, case: dict, demo: bool) -> None:
                 "patient_facts": {k: v for k, v in facts.items() if v}, "demo_mode": demo}
         with st.spinner("Reading the letter and drafting..."):
             st.session_state["appeal"] = api("POST", "/api/v1/appeal/draft", json=body)
+        st.session_state["letter_text"] = st.session_state["appeal"]["letter"]["body"]   # a new draft starts a fresh letter and chat
+        st.session_state["appeal_msgs"] = []
 
     r = st.session_state.get("appeal")
     if not r:
@@ -361,6 +407,7 @@ def _appeal(api, case: dict, demo: bool) -> None:
         st.info("Fill in these blanks before sending: " + ", ".join(r["letter"]["placeholders"]))
     text = st.text_area("Your draft", value=r["letter"]["body"], height=380, key="letter_text")
     st.download_button("Download the draft (.txt)", data=text, file_name="appeal_draft.txt")
+    _appeal_chat(api_base, case, r, demo)
     _send_panel(api, text, p, demo)
     st.subheader("Next steps")
     for s in r["next_steps"]:
@@ -377,4 +424,4 @@ def render_agents(api, api_base: str) -> None:
     demo = st.toggle("Demo mode: use pre-recorded answers (works without internet or the AI)", key="demo_mode")
     case = _case_from_session(st.session_state)
     _assistance(api, case, demo, api_base)
-    _appeal(api, case, demo)
+    _appeal(api, case, demo, api_base)

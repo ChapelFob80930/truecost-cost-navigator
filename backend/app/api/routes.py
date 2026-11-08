@@ -17,7 +17,7 @@ from ..exceptions import InvalidStatsQuery
 from ..services.note_reader import MAX_BYTES
 from ..domain.models import Payer
 from ..domain.plan_types import available_types
-from ..agents.schemas import (AppealDraftRequest, AppealDraftResponse, AppealSendRequest, AppealSendResponse,
+from ..agents.schemas import (AppealChatRequest, AppealChatResponse, AppealDraftRequest, AppealDraftResponse, AppealSendRequest, AppealSendResponse,
                               AssistanceMatchRequest, AssistanceMatchResponse, GmailDraftRequest, GmailDraftResponse)
 from html import escape
 
@@ -202,6 +202,15 @@ def gmail_disconnect(x_gmail_session: Optional[str] = Header(None), c: Container
     if c.mailer:
         c.mailer.disconnect(x_gmail_session)
     return {"connected": False}
+
+
+@ref.post("/appeal/chat", response_model=AppealChatResponse, tags=["agents"])
+def appeal_chat(body: AppealChatRequest, request: Request, c: Container = Depends(get_container)):
+    """Back-and-forth about ONE pasted denial letter and its appeal draft. Answers questions about the denial and can revise
+    the draft; anything else (other topics, legal or medical advice, attempts to change the rules) is refused."""
+    result = c.agents.chat(body)
+    _meta(request, chat_kind=result.kind, ai_mode=result.meta.mode)
+    return result
 
 
 @ref.get("/stats", tags=["meta"])

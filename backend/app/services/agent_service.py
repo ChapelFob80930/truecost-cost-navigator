@@ -9,16 +9,25 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, Optional
 
 from ..agents.appeal_agent import run_appeal_agent
+from ..agents.appeal_chat import run_appeal_chat
 from ..agents.assistance_agent import run_assistance_agent
 from ..agents.cached import CACHE_DIR, load_cached
 from ..agents.llm import ChatModel
-from ..agents.schemas import (AppealDraftRequest, AppealDraftResponse, AssistanceMatchRequest, AssistanceMatchResponse)
+from ..agents.schemas import (AppealChatRequest, AppealChatResponse, AppealDraftRequest, AppealDraftResponse,
+                              AssistanceMatchRequest, AssistanceMatchResponse)
 from ..exceptions import DomainError
 
 
 log = logging.getLogger("truecost.agents")
 STREAM_TIMEOUT_S = 150
 KEEPALIVE_S = 8        # send a keep-alive this often while waiting, so proxies (e.g. a tunnel's ~100 s limit) keep the stream open
+
+
+class ChatFailed(DomainError):
+    status_code = 502
+
+    def __init__(self):
+        super().__init__("The assistant ran into a problem. Please try again in a moment.")
 
 
 class AgentUnavailable(DomainError):
@@ -91,6 +100,17 @@ class AgentService:
             if item is done:
                 return
             yield item
+
+    def chat(self, req: AppealChatRequest) -> AppealChatResponse:
+        if self._model is None:
+            raise AgentUnavailable()
+        try:
+            return run_appeal_chat(self._model, req)
+        except DomainError:
+            raise
+        except Exception:  # noqa: BLE001 - never leak provider errors or letter text
+            log.exception("appeal chat failed")
+            raise ChatFailed()
 
     def draft(self, req: AppealDraftRequest) -> AppealDraftResponse:
         if req.demo_mode:

@@ -13,6 +13,13 @@ In Vultr: deploy a new **Cloud Compute** instance, **Ubuntu 24.04**, the smalles
 
 Caddy can only get the certificate after this name points at the server.
 
+## Build the upload bundle (from the project folder)
+```bash
+zip -r truecost-deploy.zip backend deploy scripts requirements.txt README.md truecost.db \
+  -x "*/__pycache__/*" "*.pyc" "*/.pytest_cache/*" ".env" "*.env"
+unzip -l truecost-deploy.zip | grep -i "\.env" || echo "no env file in the bundle: good"
+```
+
 ## 3. Upload (from your PC, PowerShell in the project folder)
 ```powershell
 scp truecost-deploy.zip root@SERVER_IP:/root/
@@ -37,13 +44,18 @@ bash /opt/truecost/deploy/check.sh https://api.yourdomain.com
 ```
 You want `ALL GOOD`, including `database is Postgres (Tiger Data)`. Also open `https://api.yourdomain.com/docs` in a browser.
 
+## Emailing the appeal letter: nothing to set up
+The appeal screen's "Open in Gmail" button builds a prefilled Gmail compose link **in the browser**. The patient reviews the letter and presses Send in their own Gmail. There is no Google sign-in, no stored login and nothing to configure on the server.
+
+The API also contains an optional "Connect my Gmail" (OAuth) feature. It stays **off** unless `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are in `.env`. For a public launch, leave them unset: the public can't use that feature until Google verifies the app, and it keeps tokens in memory only.
+
 ## 6. Connect the frontend
 - In the Lovable project, set `API_BASE` in `src/lib/api.ts` to `https://api.yourdomain.com` (no trailing slash).
 - On the server, edit `/opt/truecost/.env` and set `CORS_ORIGINS` to your frontend address(es), comma-separated, for example `https://your-project.lovable.app,https://yourdomain.com`. Then `systemctl restart truecost`.
 - Run `check.sh` again; the CORS line should pass.
 
 ## Updating after a code change
-Rebuild the zip on your PC, then:
+Rebuild the zip (see "Build the upload bundle"), then:
 ```bash
 scp truecost-deploy.zip root@SERVER_IP:/root/
 ssh root@SERVER_IP "unzip -o /root/truecost-deploy.zip -d /opt/truecost && /opt/truecost/.venv/bin/pip install -r /opt/truecost/backend/requirements.txt && chown -R truecost:truecost /opt/truecost && systemctl restart truecost"
@@ -61,6 +73,7 @@ ssh root@SERVER_IP "unzip -o /root/truecost-deploy.zip -d /opt/truecost && /opt/
 | Everything worked, then stopped | `systemctl status truecost caddy` and the Tiger service status in its console |
 
 ## Know the limits
+- **Gmail compose links have a length limit.** A very long letter fills in the address and subject only, and the screen tells the patient to copy and paste the letter.
 - **No login or rate limiting.** Anyone with the URL can use your Gemini quota. Fine for a hackathon; don't share the URL widely or leave it up afterwards.
 - **Never commit or paste `.env`.** It holds the Gemini key and the Tiger password.
 - **Not tested on a real server.** The scripts passed a syntax check and the app passed its tests in a clean Python environment, but this exact install was never run on Vultr. Expect to fix one small thing on the first try.

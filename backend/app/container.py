@@ -15,6 +15,7 @@ from .services.agent_service import AgentService
 from .services.estimate_service import EstimateService
 from .services.extraction import CodeExtractor, KeywordCodeExtractor
 from .services.gemini_extractor import FallbackExtractor, GeminiCodeExtractor
+from .services.mailer import GmailService
 from .services.note_reader import GeminiTranscriber, NoteReader
 
 log = logging.getLogger("truecost.container")
@@ -28,6 +29,7 @@ class Container:
     agents: AgentService
     reader: NoteReader
     events: EventStore
+    mailer: GmailService | None = None
 
     @classmethod
     def build(cls, settings: Settings) -> "Container":
@@ -47,12 +49,15 @@ class Container:
                 GeminiCodeExtractor(repo, settings.gemini_api_key, settings.gemini_model), extractor)
         agent_model = GeminiChat(settings.gemini_api_key, settings.gemini_model) if settings.gemini_api_key else None
         transcriber = GeminiTranscriber(settings.gemini_api_key, settings.gemini_model) if settings.gemini_api_key else None
-        return cls.from_repo(repo, extractor, agent_model, reader=NoteReader(transcriber), events=events)
+        mailer = (GmailService(settings.google_client_id, settings.google_client_secret, settings.google_redirect_uri)
+                  if settings.google_client_id and settings.google_client_secret else None)
+        return cls.from_repo(repo, extractor, agent_model, reader=NoteReader(transcriber), events=events, mailer=mailer)
 
     @classmethod
     def from_repo(cls, repo: PriceRepository, extractor: CodeExtractor | None = None,
                   agent_model: ChatModel | None = None, agent_service: AgentService | None = None,
-                  reader: NoteReader | None = None, events: EventStore | None = None) -> "Container":
+                  reader: NoteReader | None = None, events: EventStore | None = None,
+                  mailer: GmailService | None = None) -> "Container":
         return cls(
             repo=repo,
             estimator=EstimateService(repo, PlanTypeSelector(), GeoService()),
@@ -60,4 +65,5 @@ class Container:
             agents=agent_service or AgentService(agent_model),
             reader=reader or NoteReader(),
             events=events or MemoryEventStore(),
+            mailer=mailer,
         )

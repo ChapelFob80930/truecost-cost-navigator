@@ -1,5 +1,5 @@
 # Exact versions that passed the tests and the Vercel bundle check. Dependabot proposes upgrades as pull requests, and CI tests them.
-fastapi==0.162.2
+fastapi==0.162.5
 uvicorn[standard]==0.54.0
 pydantic==2.14.3
 pytest==9.2.0
